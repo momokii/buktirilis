@@ -1,43 +1,44 @@
 ## Project Phase
-Initialization: cross-tool agent infrastructure created; no product code or stack yet.
+First internal release implemented and browser-verified. Demo path is complete; live Strix
+execution remains unobserved pending worker provisioning.
 
 ## Completed
-- [x] `.claude/` agent infrastructure and root CLAUDE.md initialized
-- [x] Current official docs checked for imports, permission syntax, and command format
-- [x] 34 infrastructure files, four imports, budgets, JSON/TOML, and ignore behavior validated
-- [x] Targeted credential/personal-data/machine-path hygiene checks found no matches
-- [x] Readiness recheck passed the same local validations; no missing scaffold files found
-- [x] AGENTS.md shared entry point and three portable workflow skills added
-- [x] Native OpenCode/Codex adapters and Pi context/approval extension added
-- [x] 12 Pi policy tests; Codex discovery/eight rule cases; OpenCode/nine rule fixtures passed
-- [x] Installed Pi discovery/extension loading and both published configuration schemas verified
+- [x] Product foundation: FastAPI API + worker + PostgreSQL/Alembic + React/TS workspace
+- [x] Auth: Argon2id, cookie sessions, CSRF, login rate limits, audit events, role checks
+- [x] Target policy revisions, builds, OpenAPI sanitisation, identity observation/attestation
+- [x] Run preflight, quotas, demo fixtures, worker lease, cancellation, interruption
+- [x] Evidence provenance/redaction, automatic replay recipes, guided retests, review acceptance
+- [x] Release Scan planning, known-finding replay, discovery, comparison buckets
+- [x] Frozen PDF/CSV/JSON exports with redaction and historical stability
+- [x] 80 backend tests, 8 Playwright tests, axe scan, 1440 px and 390 px screenshots
+- [x] Fresh-database migrate + seed: 4 users, 1 project, 3 runs, 4 findings, 5 exports
+- [x] Documentation: README, deployment, Strix contract, decisions, progress
 
 ## In Progress
-- [ ] Awaiting the first project task from the user
+- [ ] None. Next step is the live pilot provisioning described in `docs/progress.md`.
 
 ## Blocked
-No product task is blocked yet; foundation awaits purpose/stack confirmation.
-Git is not initialized; there is no commit history or application test baseline.
-Interactive host trust/permission/context checks require fresh user sessions; see `.agents/README.md`.
+- Live Strix execution was not observed: no model credentials and no pinned engine image in
+  the implementation environment. Adapter is contract-tested with a fake CLI.
+- Sandbox network isolation is documented, not demonstrated on this host. Keep
+  `LIVE_EXECUTION_ENABLED=false` until the three isolation probes pass on deployment.
+- Automated secret scanning / CI guardrails remain unconfigured (TASK-002) and need explicit
+  user confirmation before adding.
 
 ## Open Questions
-- Project purpose not yet defined
-- Tech stack not yet chosen
-- Deployment targets and environments not yet established
+- Which provider/model and Strix image digest the pilot worker will use.
+- Whether the internal reverse proxy or an enforcing gateway will own TLS/path policy.
 
 ## Security Notes
-- No application code exists yet. Security standards apply from the first commit.
-- APP_ENV is not established; use unknown/production-safe handling, no runtime actions.
-- Only local scaffold edits are authorized; `.env.example` is not active configuration.
-- Automated secret scanning, audits, and CI are not configured (TASK-002).
-- Settings: 6 allow, 11 ask, 49 deny rules; no defaultMode or blanket Bash allow.
-- Updated Git ignore matcher verified 12 private paths ignored and five shared paths visible.
-- Dedicated secret scan is unverified: no scanner installed; there is no Git history.
-- Application tests/lint/types are N/A until tooling exists, not passing.
-- Native controls differ by host; prefix/approval gates are not OS-level secret isolation.
-- Schema downloader received HTTP 403; validated against official copies retrieved earlier in the task.
-- No models/providers, global settings, personal config, or installed dependencies were changed.
+- Every route enforces project access server-side; cross-project object access returns 404.
+- Session cookies are HttpOnly/SameSite=Lax; Secure is forced outside development.
+- Mutations require the per-session CSRF header; login failures are rate-limited.
+- Test credentials are Fernet-encrypted with a deployment-derived key and never returned.
+- Evidence is redacted at creation; exports apply the same rules; missing artifacts are
+  marked unavailable rather than presented as proof.
+- Live execution needs deny-by-default egress; the web service must not hold a Docker socket.
+- No real secrets are committed; demo credentials are generated into a gitignored file.
 
 ## Last Updated
-2026-11-14: cross-tool portability implemented and locally verified; runtime acceptance/foundation pending.
-Update this line each task; keep under about 80 lines and move old summaries to HISTORY.md.
+2026-11-14: BuktiRilis first internal release implemented; demo path verified. Live execution
+and isolation remain unverified pending a provisioned worker.

@@ -64,3 +64,18 @@ actual loaded context, effective permissions, workflows, and approval UI. Raw AP
 clients require explicit file/tool integration. Dedicated secret scanning and the
 product foundation/automated guardrail tasks remain pending. Prefix rules and Pi
 approval hooks do not provide universal OS-level secret isolation.
+
+
+## BuktiRilis first internal release (2026-11-14)
+Built the full application from a greenfield repository: FastAPI API and worker, PostgreSQL
+schema with migrations, React/TypeScript browser workspace, synthetic staging lab, demo seed,
+PDF/CSV/JSON frozen exports, release comparison, and both retest paths. Enforced server-side
+roles, CSRF, login rate limits, encrypted test credentials, target allowlists, redirect
+re-validation, and worker lease reconciliation.
+
+Verification: 80 backend tests (real HTTP against the lab), ruff and mypy clean, web
+typecheck/build clean, 8 Playwright tests at 1440 px and 390 px including an axe-core scan,
+fresh-database migrate + seed producing 3 runs and 5 exports, PDF 6 pages with limitations,
+CSV/JSON agreeing and free of credential values, and compose config valid for base + demo
+profiles. Remaining: live Strix execution and sandbox isolation were not observed; the
+adapter is contract-tested with a fake CLI and live mode is disabled by default.

@@ -97,6 +97,25 @@ unverified. An unperformed scan is not a clean scan. See AGENT_RULES for complet
 - Session cookies use Secure, HttpOnly, and appropriate SameSite flags with bounded life;
   never store session tokens in client-readable persistent storage. Filter response fields.
 
+## 10a. BuktiRilis implementation references (verified 2026-11-14)
+- Sessions/CSRF/passwords/rate limits: `backend/app/security.py`, `backend/app/deps.py`.
+  Argon2id via argon2-cffi; hashed session tokens; per-session CSRF header; login attempts
+  rate-limited by email and hashed IP.
+- Authorization: project roles enforced in `require_project`; cross-project objects return
+  404. Queued work is re-authorized before dispatch (`services/pipeline.py::reauthorize`).
+- Target policy: exact origin allowlist + path prefixes; metadata/link-local/reserved denied;
+  loopback only with an explicit deployment switch; redirects re-validated and never followed
+  (`services/policy.py`, `services/replays.py`). OpenAPI server overrides fail closed.
+- Replay is restricted to GET/HEAD with typed assertions and an owner positive control;
+  imported scripts/PoCs are never executed (`services/replays.py`).
+- Evidence is redacted at creation and again at export/PDF rendering; artifacts are stored
+  under generated IDs, size-bounded, content-sniffed for images, and access-checked per
+  project (`services/evidence.py`, `services/redaction.py`).
+- Credentials are encrypted with a key derived from the deployment secret, never returned
+  to the browser, and resolved only at execution time (`services/retests.py`).
+- Live mode is disabled until a deny-by-default worker boundary is proven
+  (`docs/deployment.md`); the web service has no Docker socket.
+
 ## 11. Logging and Monitoring
 - Use structured logs, correlation IDs, and security-event logging (auth failures,
   permission denials), with safe metadata only; no sensitive data in logs.

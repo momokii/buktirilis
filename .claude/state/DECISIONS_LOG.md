@@ -40,6 +40,28 @@ impact. General templates remain conditional until real project facts are known.
 **Impact:** Restart/review/trust resources in each host and check effective controls. Native diagnostics, configuration schemas, and Pi tests pass locally; interactive UI/model behavior remains unverified. No application stack selected.
 ---
 
+## BuktiRilis application stack and trust model
+---
+**Decision:** Implement the brief's greenfield stack (React/TS, FastAPI, PostgreSQL, Compose)
+with derived verification state, a database queue lease, a synthetic lab for demo retests,
+and frozen server-generated exports. Details and alternatives: `docs/decisions.md` (ADR-001
+to ADR-010).
+**Date:** 2026-11-14
+**Context:** The task specification supplied product requirements, stack preferences, and
+explicit authorization for Git initialization; no product code existed.
+**Rationale:** Derived state preserves historical evidence; real lab replays keep demo
+buttons genuine; frozen snapshots keep exports stable; server-side scope checks and worker
+re-validations make revocation effective.
+**Alternatives Rejected:** Mutable finding status flags; fixture-only retests; re-rendering
+exports on download; adding a large UI kit or CDN fonts; automatically retrying interrupted
+jobs; implicit loopback access.
+**Security Implications:** Cookies are HttpOnly/CSRF-protected; credentials encrypted and
+never returned; evidence redacted; destination allowlists and loopback opt-in; console web
+service has no Docker socket; live mode stays off until isolation is proven.
+**Impact:** Enables the verified demo and an implementation of the live adapter. Live
+execution and sandbox isolation remain unverified (TASK-003).
+---
+
 ## New decision template
 ---
 **Decision:** [What was decided]

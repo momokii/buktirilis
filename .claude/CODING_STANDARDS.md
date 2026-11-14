@@ -44,6 +44,29 @@
 - Keep unrelated changes out of a commit; review intended files and checks first.
 - Never bypass verification hooks or rewrite existing work/history without approval.
 
+## BuktiRilis stack conventions (verified 2026-11-14)
+- Python: `backend/`, Python 3.12, FastAPI + SQLAlchemy 2 typed mappings. Services own
+  behavior (`app/services/`); routers validate HTTP input and delegate. Domain constants live
+  in `app/domain.py`; nobody re-declares status strings inline.
+- Database: `backend/app/models.py` is the schema source; `backend/migrations/versions/` is
+  the ordered history. `alembic check` must report no diff before a schema change is done.
+- Tooling: `ruff` (line length 100, formatter), `mypy` (`backend/app`), `pytest` (tests use
+  an isolated PostgreSQL schema and a loopback lab fixture). Commands: `make lint`,
+  `make typecheck`, `make test`.
+- Security helpers: redaction in `app/services/redaction.py`, target policy/OpenAPI in
+  `app/services/policy.py`, constrained HTTP in `app/services/replays.py`, auth in
+  `app/security.py`. Never bypass these from a router.
+- Verification semantics: observations are the source of truth; never add a mutable finding
+  status. New outcome or bucket logic goes in `app/services/findings.py` with table-driven
+  tests.
+- Frontend: React 19 + TypeScript strict, Vite. UI primitives in `web/src/ui.tsx`, design
+  tokens in `web/src/styles.css` (system fonts, no CDN), API client and types in
+  `web/src/api.ts`. Preserve focus-visible, native dialog, roving tabindex, and role-based
+  access rendering; changes need `npm run typecheck && npm run build` and a Playwright run.
+- Exports: server-side only (`backend/app/services/exports.py`); freeze payload + bytes.
+  PDF output is verified by text extraction, CSV by parsing and formula neutralization, JSON
+  by schema and redaction assertions.
+
 ## Self-Update
 When the stack is confirmed, specialize these standards with concrete language and
 framework conventions, formatter/linter/type-check configuration references, and

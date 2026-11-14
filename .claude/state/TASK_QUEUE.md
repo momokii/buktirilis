@@ -10,9 +10,9 @@ real task. Do not install a stack merely because the queue contains foundation w
 | Task ID | TASK-001 |
 | Name | Establish project foundation |
 | Priority | High |
-| Status | BLOCKED |
+| Status | DONE |
 | Complexity | M |
-| Depends On | User confirmation of purpose and stack |
+| Depends On | User confirmation of purpose and stack (provided by the BuktiRilis brief) |
 | Scope | Confirm purpose/stack; initialize Git only with authorization if still absent; extend .gitignore; configure formatter, linter, type checker where supported, and test tooling; establish Compose dev/prod pattern if containerized. Specialize CODING_STANDARDS, SECURITY_STANDARDS, ENVIRONMENT_GUIDE, HOW_TO_RESUME commands, CLAUDE.md Snapshot/Commands, and README. Propose a narrow stack-specific settings.json allow-list and obtain confirmation before adding. |
 | Acceptance Criteria | One verified command each to run, test, lint, and health-check; format/type checks documented where applicable; all .claude files reflect the real stack; local tests cover development/production config and missing/unknown APP_ENV; no production access. |
 | Security Concerns | Legitimate pinned/audited dependencies; reviewed install scripts; isolated dev target; fail-closed configuration; no secret reads or security weakening. |
@@ -29,6 +29,27 @@ real task. Do not install a stack merely because the queue contains foundation w
 | Scope | Propose and, with confirmation, add pre-commit secret scanning, dependency audit, static analysis, image scanning if containerized, CI running tests/lint/types/scans, and dependency update tooling. Document commands and findings policy. |
 | Acceptance Criteria | Approved checks run locally and in CI as applicable; safe synthetic negative cases demonstrate gates fail on violations; lockfile installs reproducible; applicable scans clean or findings explicitly triaged; no real secrets used to test scanners. |
 | Security Concerns | Least-privilege CI tokens; trusted pinned actions/tools; no credentials in artifacts/logs; hooks cannot be silently bypassed; edits to protected hook/config files require expected approval. |
+
+## TASK-003: Provision and verify the live Strix pilot
+| Field | Value |
+|---|---|
+| Task ID | TASK-003 |
+| Name | Provision and verify the live Strix pilot |
+| Priority | High |
+| Status | BLOCKED |
+| Complexity | L |
+| Depends On | TASK-001; isolated worker host; approved model provider; pinned Strix image |
+| Scope | Pin the Strix v1.7.1 image digest; configure model/provider on the worker; prove allowed-target, denied-local, and out-of-scope-redirect probes; run one live baseline against the controlled lab; sanitize and add the observed artifact sample as a fixture. |
+| Acceptance Criteria | Live run observed with normalized artifacts matching the contract; isolation probes pass; no credential values in records/exports; deployment runbook records version, digest, and probe evidence. |
+| Security Concerns | Deny-by-default egress; no control-plane/metadata reachability; short-lived test credentials; unconfirmed sandbox cleanup blocks redispatch. |
+
+## Completed application work
+- [x] Foundation, schema/migrations, auth/CSRF/rate limits, audit and role enforcement
+- [x] Approved scope, builds, OpenAPI validation, identity observation/attestation
+- [x] Run lifecycle, preflight, demo fixtures, worker lease, cancellation, interruption
+- [x] Evidence, replay recipes, guided retests, review acceptance, comparison, exports
+- [x] 80 backend tests, 8 Playwright tests, axe scan, fresh-seed and PDF/CSV/JSON verification
+- [x] Documentation and reproducible demo walkthrough
 
 ## Completed infrastructure work
 - [x] Initial Claude Code bootstrap and readiness recheck

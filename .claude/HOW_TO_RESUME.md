@@ -35,15 +35,18 @@ At bootstrap there is no Git repository or application tooling: report absence h
 11. **Wrap up.** Update state and affected docs together in one write step before
     final response; `/wrap-up` performs the AGENT_RULES checklist. Report refused writes.
 
-## Command references to specialize with the stack
-| Check | Current command |
+## Verified command references
+| Check | Command |
 |---|---|
-| Development startup | not yet defined |
-| Health check | not yet defined |
-| Full test suite | not yet defined |
-| Lint / format check | not yet defined |
-| Type check | not yet defined |
-| Secret scan / dependency audit / static analysis | not yet defined; propose tooling via TASK-002 |
+| Development startup | `make db`, `make lab`, `make api`, `make worker`, `make web` (or `make dev`) |
+| Health check | `curl -fsS http://127.0.0.1:8000/api/health` |
+| Full test suite | `cd backend && .venv/bin/python -m pytest` (80 tests) |
+| Lint / format check | `make lint` |
+| Type check | `cd backend && .venv/bin/mypy app`; `cd web && npm run typecheck` |
+| Browser E2E | `cd web && npx playwright test` (lab/API/worker + seeded demo) |
+| Secret scan / dependency audit / static analysis | not yet configured; propose via TASK-002 |
+| Migrations | `cd backend && .venv/bin/alembic upgrade head && .venv/bin/alembic check` |
+| Demo seed | `make demo` (idempotent; lab must be running) |
 
 `/resume` performs only steps 1–7, reports in fewer than 15 lines, and waits for user
 confirmation before implementation. It must not silently perform foundation setup.

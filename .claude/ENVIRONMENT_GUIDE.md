@@ -13,8 +13,12 @@
   Reading only the APP_ENV selector is permitted; it is not a secret.
 - Confirm local versus remote endpoints and, for containers, daemon/context and file
   selection using non-secret metadata. Conflicting or absent evidence means unknown.
-- `.env.example` is documentation, not evidence of the active environment. There is
-  currently no app, runtime target, verified health command, or Compose configuration.
+- `.env.example` is documentation, not evidence of the active environment. A real `.env`
+  is gitignored and is never read by an agent.
+- Verified local development target (2026-11-14): APP_ENV=development, PostgreSQL 16
+  container `buktirilis-db-dev` on 127.0.0.1:55432, lab on 127.0.0.1:8099, API on 127.0.0.1:8000
+  (or 8100 when occupied), Vite on 127.0.0.1:5173, worker in the same backend venv.
+  Identify the active target from the process command/port metadata before mutating.
 - Unknown means production-safe handling: no runtime/mutating commands until clarified.
   Local read-only inspection and explicitly requested scaffold/doc edits with no runtime
   target can proceed. Never guess development or silently export APP_ENV to bypass this.
@@ -79,6 +83,22 @@ filename to settings.json's explicit Read/Edit denies before it is introduced.
   local hot reload is a development convenience, not a separate release implementation.
 - Test both development and production configuration locally with fake secrets and isolated
   services, including missing/unknown APP_ENV. Production-safe tests are not production access.
+
+## Verified local setup (development)
+```bash
+make install                 # uv sync (backend/.venv) + npm ci (web/)
+make db                      # PostgreSQL 16 container on 127.0.0.1:55432
+make migrate                 # Alembic upgrade head
+make lab                     # synthetic staging lab on 127.0.0.1:8099
+make api                     # API on 127.0.0.1:8000 (VITE_API_TARGET can override the web proxy)
+make worker                  # job worker (claims with lease)
+make web                     # Vite on 127.0.0.1:5173
+make demo                    # migrate + seed; lab must be running
+curl -fsS http://127.0.0.1:8000/api/health
+```
+Health depends on the API and database only. The demo seed additionally needs the lab.
+Tests create their own schema in the isolated `buktirilis_test` database and start a real
+loopback lab fixture; they do not touch development data.
 
 ## Self-update
 After foundation approval, replace examples with verified setup, health, migration,

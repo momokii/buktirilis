@@ -1,9 +1,12 @@
 # Project Context
 
 ## Project Snapshot
-- Purpose: Not yet defined. Update after the first working session.
-- Stack: Not yet defined. Update after the first working session.
-- Phase: Agent infrastructure initialized; no product code exists.
+- Purpose: BuktiRilis — self-hosted security testing workspace (Strix OSS engine) with
+  projects, builds, runs, evidence, retests, release comparison, and frozen exports.
+- Stack: React 19 + TypeScript + Vite; Python 3.12 + FastAPI + SQLAlchemy 2 + Alembic;
+  PostgreSQL 16; Docker Compose; synthetic FastAPI lab; Playwright + axe-core.
+- Phase: First internal release implemented. Demo path verified end to end; live Strix
+  execution wired but unobserved (no model credentials / pinned image). See `docs/progress.md`.
 
 ## Always-Loaded Context
 @.claude/AGENT_RULES.md
@@ -26,18 +29,22 @@
    into one write step before the final response. Report blocked writes.
 
 ## Commands
-These are reference slots, not executable commands. Fill them with verified commands
-when the stack exists; never guess or install tooling just to populate this table.
+Verified in this environment (see `docs/progress.md` for results):
 
 | Action | Command |
 |---|---|
-| Build | not yet defined |
-| Test (single full-suite command) | not yet defined |
-| Lint | not yet defined |
-| Format check | not yet defined |
-| Type check (where supported) | not yet defined |
-| Run (development) | not yet defined |
-| Health check | not yet defined |
+| Install | `make install` (uv sync + npm ci) |
+| Local database | `make db` (PostgreSQL 16 container, 127.0.0.1:55432) |
+| Migrate | `make migrate` or `cd backend && .venv/bin/alembic upgrade head` |
+| Demo seed | `make demo` (lab must be running) |
+| Run everything | `make dev` (lab :8099, API :8000, worker, Vite :5173) |
+| Health check | `curl -fsS http://127.0.0.1:8000/api/health` |
+| Backend tests | `cd backend && .venv/bin/python -m pytest` (80 tests) |
+| Lint / format | `make lint` |
+| Type check | `make typecheck` |
+| Web build | `cd web && npm run typecheck && npm run build` |
+| Browser E2E | `cd web && npx playwright test` (requires lab/API/worker + seeded demo) |
+| Install browser | `cd web && npx playwright install chromium` |
 
 ## On-Demand References
 Paths below are references, not imports.
@@ -53,7 +60,11 @@ For other coding agents, root `AGENTS.md` supplies the shared startup contract.
 | Infrastructure map and permission limitations | `.claude/README.md` |
 | Cross-tool discovery, native controls, trust, and shared workflows | `.agents/README.md` |
 | Earlier session outcomes | `.claude/state/HISTORY.md` |
-| Product requirements, architecture, API contracts | Project docs when created; record their actual paths here |
+| Product requirements and current milestone state | `docs/progress.md` |
+| Strix contract, artifacts, exit codes, demo/live boundary | `docs/strix-contract.md` |
+| Decisions and rationale | `docs/decisions.md` |
+| Deployment, isolation, backup/restore, rotation | `docs/deployment.md` |
+| Product and demo walkthrough | `README.md` |
 
 ## Maintenance Rules for This File
 - Keep under about 150 lines (prefer under 120); link instead of duplicating detail.

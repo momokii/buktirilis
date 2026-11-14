@@ -4,7 +4,7 @@ import { errorMessage } from "../api";
 import { Button, Field, Notice, TextInput } from "../ui";
 
 export function LoginPage() {
-  const { login, bootstrap, needsBootstrap, error, demoEnabled } = useAuth();
+  const { login, bootstrap, needsBootstrap, webBootstrapAllowed, error, demoEnabled } = useAuth();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -42,9 +42,16 @@ export function LoginPage() {
             <p className="auth-tagline">See what was tested. Verify what changed.</p>
           </div>
         </div>
-        {needsBootstrap ? (
+        {needsBootstrap && webBootstrapAllowed ? (
           <Notice tone="info" title="First launch">
             No administrator exists yet. Create the installation administrator to begin.
+          </Notice>
+        ) : null}
+        {needsBootstrap && !webBootstrapAllowed ? (
+          <Notice tone="warn" title="Administrator setup required">
+            No administrator exists. Web bootstrap is disabled in this environment; run
+            <code className="mono"> python -m app.cli bootstrap-admin --email &lt;email&gt; </code>
+            on the server, then sign in here.
           </Notice>
         ) : null}
         {demoEnabled ? (
@@ -53,6 +60,7 @@ export function LoginPage() {
             by <code className="mono">make demo</code>.
           </Notice>
         ) : null}
+        {needsBootstrap && !webBootstrapAllowed ? null : (
         <form className="stack" onSubmit={submit}>
           <Field label="Email" htmlFor="login-email">
             <TextInput
@@ -102,6 +110,7 @@ export function LoginPage() {
             {needsBootstrap ? "Create administrator" : "Sign in"}
           </Button>
         </form>
+        )}
         <p className="auth-footer">
           Authorized internal use only. Sessions are cookie-based; every action is checked
           server-side.

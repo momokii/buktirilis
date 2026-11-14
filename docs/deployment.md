@@ -20,7 +20,14 @@ cp .env.example .env
 docker compose up -d --build
 docker compose ps
 curl -fsS http://127.0.0.1:8080/api/health
+
+# Create the first administrator (web bootstrap is disabled outside development):
+docker compose exec -T api python -m app.cli bootstrap-admin --email admin@example.internal <<< 'a-long-initial-password'
 ```
+
+The CLI reads the password from stdin when no TTY is attached; change it after first sign-in.
+Alternatively use `--password-env VAR` with a one-time environment value. Web-based first-admin
+creation is allowed only in `APP_ENV=development`.
 
 Services:
 

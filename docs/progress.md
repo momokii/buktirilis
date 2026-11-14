@@ -42,7 +42,7 @@ container on `127.0.0.1:55432`, lab on `127.0.0.1:8099`.
 | Backend lint | `cd backend && .venv/bin/ruff check app tests` | **Passed** |
 | Backend format | `cd backend && .venv/bin/ruff format --check app tests` | **Passed** |
 | Backend types | `cd backend && .venv/bin/mypy app` | **Passed** (38 files) |
-| Backend tests | `cd backend && .venv/bin/python -m pytest` | **80 passed** |
+| Backend tests | `cd backend && .venv/bin/python -m pytest` | **81 passed** |
 | Web types | `cd web && npm run typecheck` | **Passed** |
 | Web build | `cd web && npm run build` | **Passed** (production bundle) |
 | Browser E2E | `cd web && npx playwright test` | **9 passed** (1440 + 390) |

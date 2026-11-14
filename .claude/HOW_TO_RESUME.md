@@ -40,7 +40,7 @@ At bootstrap there is no Git repository or application tooling: report absence h
 |---|---|
 | Development startup | `make db`, `make lab`, `make api`, `make worker`, `make web` (or `make dev`) |
 | Health check | `curl -fsS http://127.0.0.1:8000/api/health` |
-| Full test suite | `cd backend && .venv/bin/python -m pytest` (80 tests) |
+| Full test suite | `cd backend && .venv/bin/python -m pytest` (81 tests) |
 | Lint / format check | `make lint` |
 | Type check | `cd backend && .venv/bin/mypy app`; `cd web && npm run typecheck` |
 | Browser E2E | `cd web && npx playwright test` (lab/API/worker + seeded demo) |

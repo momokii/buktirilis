@@ -10,7 +10,7 @@ execution remains unobserved pending worker provisioning.
 - [x] Evidence provenance/redaction, automatic replay recipes, guided retests, review acceptance
 - [x] Release Scan planning, known-finding replay, discovery, comparison buckets
 - [x] Frozen PDF/CSV/JSON exports with redaction and historical stability
-- [x] 80 backend tests, 8 Playwright tests, axe scan, 1440 px and 390 px screenshots
+- [x] 81 backend tests, 8 Playwright tests, axe scan, 1440 px and 390 px screenshots
 - [x] Fresh-database migrate + seed: 4 users, 1 project, 3 runs, 4 findings, 5 exports
 - [x] Documentation: README, deployment, Strix contract, decisions, progress
 

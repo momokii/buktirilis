@@ -115,6 +115,18 @@ def api(db, admin_client, lab_server, lab_project):
     return data
 
 
+def test_web_bootstrap_is_development_only():
+    from app.config import Settings
+    from app.routers.auth import web_bootstrap_allowed
+
+    assert web_bootstrap_allowed(Settings(APP_ENV="development")) is True
+    production = Settings(
+        APP_ENV="production",
+        BUKTIRILIS_SECRET_KEY="test-only-secret-key-with-enough-length-1234",
+    )
+    assert web_bootstrap_allowed(production) is False
+
+
 def test_unauthenticated_requests_are_rejected(client):
     assert client.get("/api/auth/session").status_code == 401
     assert client.get("/api/projects").status_code == 401

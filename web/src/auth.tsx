@@ -16,6 +16,7 @@ interface AuthValue {
   loading: boolean;
   error: string | null;
   needsBootstrap: boolean;
+  webBootstrapAllowed: boolean;
   demoEnabled: boolean;
   login: (email: string, password: string) => Promise<void>;
   bootstrap: (email: string, displayName: string, password: string) => Promise<void>;
@@ -30,15 +31,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [needsBootstrap, setNeedsBootstrap] = useState(false);
+  const [webBootstrapAllowed, setWebBootstrapAllowed] = useState(true);
   const [demoEnabled, setDemoEnabled] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const status = await api<{ needs_bootstrap: boolean; demo_enabled: boolean }>(
-        "/api/system/bootstrap",
-      );
+      const status = await api<{
+        needs_bootstrap: boolean;
+        web_bootstrap_allowed: boolean;
+        demo_enabled: boolean;
+      }>("/api/system/bootstrap");
       setNeedsBootstrap(status.needs_bootstrap);
+      setWebBootstrapAllowed(status.web_bootstrap_allowed);
       setDemoEnabled(status.demo_enabled);
       try {
         const current = await api<Session>("/api/auth/session");
@@ -113,13 +118,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       error,
       needsBootstrap,
+      webBootstrapAllowed,
       demoEnabled,
       login,
       bootstrap,
       logout,
       refresh,
     }),
-    [session, loading, error, needsBootstrap, demoEnabled, login, bootstrap, logout, refresh],
+    [
+      session,
+      loading,
+      error,
+      needsBootstrap,
+      webBootstrapAllowed,
+      demoEnabled,
+      login,
+      bootstrap,
+      logout,
+      refresh,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

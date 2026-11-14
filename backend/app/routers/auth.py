@@ -107,10 +107,20 @@ def session_payload(db: Session, principal: Principal) -> dict:
     }
 
 
+def web_bootstrap_allowed(settings) -> bool:
+    """Only a local development installation may create the first admin over HTTP."""
+    return settings.app_env == "development"
+
+
 @ROUTER.get("/system/bootstrap")
 def bootstrap_status(db: Session = Depends(get_db)) -> dict:
     count = db.execute(select(func.count()).select_from(User)).scalar_one()
-    return {"needs_bootstrap": count == 0, "demo_enabled": get_settings().demo_enabled}
+    settings = get_settings()
+    return {
+        "needs_bootstrap": count == 0,
+        "web_bootstrap_allowed": web_bootstrap_allowed(settings),
+        "demo_enabled": settings.demo_enabled,
+    }
 
 
 @ROUTER.post("/auth/bootstrap", status_code=201)
@@ -120,6 +130,15 @@ def bootstrap(
     request: Request,
     db: Session = Depends(get_db),
 ) -> dict:
+    settings = get_settings()
+    if not web_bootstrap_allowed(settings):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Web bootstrap is disabled in this environment. Run "
+                "`python -m app.cli bootstrap-admin --email <email>` on the server instead."
+            ),
+        )
     count = db.execute(select(func.count()).select_from(User)).scalar_one()
     if count > 0:
         raise HTTPException(status_code=409, detail="An administrator already exists")

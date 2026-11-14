@@ -1,0 +1,105 @@
+# BuktiRilis single-host deployment (Linux, Docker Compose v2).
+#
+#   cp .env.example .env   # then set BUKTIRILIS_SECRET_KEY and a real database password
+#   docker compose --profile demo up -d --build        # with the synthetic lab
+#   docker compose up -d --build                       # without the lab
+#
+# The web service has no Docker socket and no worker runtime access. Live Strix
+# execution requires the separate worker isolation described in docs/deployment.md.
+name: buktirilis
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-buktirilis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-buktirilis-dev-only}
+      POSTGRES_DB: ${POSTGRES_DB:-buktirilis}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-buktirilis} -d ${POSTGRES_DB:-buktirilis}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [backend]
+    security_opt: ["no-new-privileges:true"]
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-buktirilis}:${POSTGRES_PASSWORD:-buktirilis-dev-only}@db:5432/${POSTGRES_DB:-buktirilis}
+      ARTIFACT_ROOT: /srv/var/artifacts
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://127.0.0.1:8080}
+    command: ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"]
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - artifacts:/srv/var/artifacts
+    networks: [backend, frontend]
+    read_only: false
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+
+  worker:
+    build: ./backend
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-buktirilis}:${POSTGRES_PASSWORD:-buktirilis-dev-only}@db:5432/${POSTGRES_DB:-buktirilis}
+      ARTIFACT_ROOT: /srv/var/artifacts
+      STRIX_RUNS_ROOT: /srv/var/strix_runs
+    command: ["python", "-m", "app.worker"]
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - artifacts:/srv/var/artifacts
+      - strix_runs:/srv/var/strix_runs
+    networks: [backend]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+
+  web:
+    build: ./web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${WEB_BIND:-127.0.0.1}:8080:8080"
+    networks: [frontend]
+    read_only: true
+    tmpfs: ["/tmp", "/var/cache/nginx"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+
+  # Bundled synthetic staging API for the demo. Never enable this in a real pilot.
+  lab:
+    profiles: ["demo"]
+    build: ./lab
+    environment:
+      LAB_HOST: 0.0.0.0
+      LAB_PORT: 8099
+    ports:
+      - "127.0.0.1:8099:8099"
+    networks: [backend]
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+
+volumes:
+  db_data:
+  artifacts:
+  strix_runs:
+
+networks:
+  frontend:
+  backend:
+    internal: false

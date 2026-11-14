@@ -1,0 +1,50 @@
+# Execpolicy covers matching command prefixes on Codex's approval/escalation path.
+# It is not a universal file-read deny list or a complete shell parser.
+prefix_rule(
+    pattern = ["sudo"],
+    decision = "forbidden",
+    justification = "Project agents must not escalate privileges.",
+    match = ["sudo true"],
+)
+prefix_rule(
+    pattern = ["chmod", "777"],
+    decision = "forbidden",
+    justification = "Use least-privilege file permissions; do not make files world-writable.",
+    match = ["chmod 777 example"],
+)
+prefix_rule(
+    pattern = ["chmod", "-R", "777"],
+    decision = "forbidden",
+    justification = "Recursive world-writable permissions are prohibited.",
+    match = ["chmod -R 777 example"],
+)
+prefix_rule(
+    pattern = ["git", "push", ["--force", "-f", "--force-with-lease", "--force-if-includes"]],
+    decision = "forbidden",
+    justification = "Force-push is prohibited. Use a normal push only when explicitly requested.",
+    match = ["git push --force origin main", "git push --force-with-lease origin main"],
+)
+prefix_rule(
+    pattern = ["git", "push"],
+    decision = "prompt",
+    justification = "Pushes require explicit user authorization; never approve a force-push variant.",
+    match = ["git push origin main"],
+)
+prefix_rule(
+    pattern = ["git", ["reset", "clean"]],
+    decision = "prompt",
+    justification = "Review the target and preserve existing work before destructive Git operations.",
+    match = ["git reset --hard", "git clean -fd"],
+)
+prefix_rule(
+    pattern = [["rm", "curl", "wget"]],
+    decision = "prompt",
+    justification = "Review deletion or network access before allowing it beyond the sandbox.",
+    match = ["rm -rf example", "curl https://example.com", "wget https://example.com"],
+)
+prefix_rule(
+    pattern = ["docker"],
+    decision = "prompt",
+    justification = "Confirm an isolated development daemon and configuration; never operate production.",
+    match = ["docker compose up", "docker compose -f compose.yaml -f compose.prod.yaml up"],
+)

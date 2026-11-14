@@ -1,0 +1,11 @@
+# Shared project defaults. Codex applies this layer only after project trust.
+# Keep the user's model/provider selection; do not put credentials here.
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[sandbox_workspace_write]
+network_access = false
+
+# Do not forward common credential variables to generated shell commands by default.
+[shell_environment_policy]
+ignore_default_excludes = false

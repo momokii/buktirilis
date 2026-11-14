@@ -1,0 +1,66 @@
+# Session History
+
+Append-only: add dated summaries at task boundaries. Preserve earlier entries; current
+state belongs in CURRENT_STATUS.md, task details in TASK_QUEUE.md, rationale in DECISIONS_LOG.md.
+
+## 2026-11-14 — Infrastructure bootstrap
+Inspected an empty directory with no existing target files or Git repository. Created
+the requested general-purpose Claude Code infrastructure, root context imports, shared
+permission baseline, safe configuration template, ignore rules, lifecycle commands,
+state records, and four implementation checklists. Checked official documentation for
+imports, permissions, protected paths, and legacy command-file support. No product
+stack, runtime, dependency, Compose setup, or automated guardrail tool was selected.
+
+Key outcomes:
+- Security Gate, dev/prod discipline, no-weakening policy, and batch wrap-up established.
+- Foundation and automated guardrail work queued conditionally on user confirmation.
+- Interactive `/permissions`, `/context`, and command-menu acceptance remain for the
+  user's Claude Code session; application checks have no tooling yet.
+- Bootstrap structural/hygiene checks are separate from future application/security
+  automation; report executed verification evidence rather than assuming success.
+
+Verification: the local bootstrap validator exited successfully for 21 non-empty
+files, exactly four resolvable plain-text imports, and context budgets (CLAUDE.md 60,
+AGENT_RULES 87, CODING_STANDARDS 51, SECURITY_STANDARDS 125 lines). Settings parsed
+with 6 allow / 11 ask / 49 deny rules and no defaultMode. An isolated temporary Git
+fixture verified 14 ignored private paths and four visible shared paths, without
+initializing this project. Targeted credential/personal-data/machine-path checks had
+no matches. No dedicated secret scanner is installed; full secret scanning remains
+unverified. Application tests/lint/types are N/A without product code/tooling.
+
+## 2026-11-14 — Development readiness recheck
+Re-read the entry point, imported policies, lifecycle commands, environment guide,
+and task queue, then reran the local bootstrap validator successfully. All 21 files,
+four imports/context budgets, permission JSON, actual ignore behavior, and targeted
+hygiene checks passed again. Confirmed Git remains uninitialized and APP_ENV is
+unset; no application runtime exists. Clarified in README that Claude Code permission
+settings do not establish enforcement in another harness such as OpenCode.
+
+Key outcomes: the general agent scaffold is ready for the first foundation task;
+purpose/stack confirmation, Git authorization, stack-specific quality tooling and
+approved security automation remain future work. Interactive Claude Code acceptance
+and a dedicated secret scan remain unverified; no claim of full runtime readiness.
+
+## 2026-11-14 — Cross-tool agent portability
+Extended the shared infrastructure for Claude Code, OpenAI Codex, OpenCode, Pi,
+and other AGENTS.md-aware/API clients. Added root AGENTS.md, a human README,
+native OpenCode and Codex adapters, a trusted Pi context/approval extension, three
+portable skills referencing existing procedures, and reproducible infrastructure
+verification. Preserved the original Claude permission baseline and extended shared
+rules without weakening them. No product stack, model/provider override, new package
+installation, global/personal configuration change, or real-project Git initialization.
+
+Key verification outcomes: 34 known files/imports/budgets/JSON/TOML/hygiene checks
+passed; actual Git matcher excluded 12 private paths and retained five shared paths;
+12 Pi safety tests passed; installed Codex discovered AGENTS.md and evaluated eight
+command-policy cases without executing those commands; installed OpenCode retained
+five instruction paths/workflows and nine deny/ask/allow fixtures; installed Pi
+discovered AGENTS.md and loaded all three extension hooks. OpenCode and Codex config
+validated against official schemas retrieved during the task. A direct downloader
+later returned HTTP 403; used the previously retrieved copies without retrying access.
+
+Remaining acceptance: restart OpenCode; use each host's normal trust flow and inspect
+actual loaded context, effective permissions, workflows, and approval UI. Raw API
+clients require explicit file/tool integration. Dedicated secret scanning and the
+product foundation/automated guardrail tasks remain pending. Prefix rules and Pi
+approval hooks do not provide universal OS-level secret isolation.

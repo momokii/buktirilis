@@ -1,0 +1,51 @@
+# Local environment values; only the documented placeholder template is shared.
+.env
+.env.*
+!.env.example
+
+# Personal Claude Code configuration and instructions.
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Agent credentials and local execution/session artifacts (shared configs stay visible).
+.codex/auth.json
+.codex/auth.*.json
+.codex/sessions/
+.codex/log/
+.codex/*.sqlite*
+.pi/auth.json
+.pi/sessions/
+.pi/trust.json
+.opencode/node_modules/
+.opencode/package.json
+.opencode/bun.lock
+.opencode/bun.lockb
+AGENTS.local.md
+
+# Private keys, certificates, and secret stores.
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+
+# Add dependencies, build output, and caches after confirming the stack.
+
+# Application runtime, dependencies, and build output.
+node_modules/
+web/dist/
+web/playwright-report/
+web/test-results/
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.pytest_cache/
+backend/.ruff_cache/
+backend/.mypy_cache/
+.pytest_cache/
+var/
+backend/var/
+backend/coverage.xml
+backend/.coverage
+*.log
+.DS_Store

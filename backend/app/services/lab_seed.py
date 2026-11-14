@@ -566,7 +566,9 @@ def seed_demo(
 
 
 def credentials_file() -> Path:
-    root = Path(os.environ.get("BUKTIRILIS_VAR_DIR", "./var"))
+    """Default to the repository-level var/ directory regardless of the caller's cwd."""
+    default = Path(__file__).resolve().parents[3] / "var"
+    root = Path(os.environ.get("BUKTIRILIS_VAR_DIR", str(default)))
     return (root / "demo-credentials.txt").resolve()
 
 

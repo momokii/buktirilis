@@ -12,7 +12,7 @@ interface Credentials {
 function credentials(): Credentials {
   const file =
     process.env.DEMO_CREDENTIALS_FILE ??
-    resolve(process.cwd(), "../backend/var/demo-credentials.txt");
+    resolve(process.cwd(), "../var/demo-credentials.txt");
   const lines = readFileSync(file, "utf8").split("\n").filter(Boolean);
   const parsed: Record<string, { email: string; password: string }> = {};
   for (const line of lines) {

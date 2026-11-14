@@ -13,6 +13,7 @@ Browser UI: React/TypeScript. Backend/worker: Python/FastAPI. DB: PostgreSQL.
 | M4 | Frozen PDF/CSV/JSON exports with snapshots | Completed | `0b9d286` |
 | M5 | Worker, live Strix adapter, synthetic lab, isolation preflight | Adapter implemented; live execution **not observed** | `a0eeedb` + `0b9d286` |
 | M6 | Release Scan, discovery, comparison, final browser verification | Completed (demo path) | `0b9d286` + `27fedbe` |
+| — | Hardening and final documentation | Completed | `ca9abd7`, `8c1de93` |
 
 ## What is delivered
 

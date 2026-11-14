@@ -8,7 +8,6 @@ import pytest
 
 from app.services.policy import TargetPolicy
 from app.services.replays import evaluate_recipe, resolve_path
-from app.services.recipes import create_recipe_revision
 from tests.helpers import BOLA_RECIPE, EXPORT_RECIPE, approve_recipe, make_finding
 
 
@@ -38,7 +37,7 @@ def _approve(db, lab_project, recipe_payload):
 
 
 def test_bola_still_reproducible_on_vulnerable_build(db, lab_project, settings):
-    finding, revision = _approve(db, lab_project, BOLA_RECIPE)
+    _finding, revision = _approve(db, lab_project, BOLA_RECIPE)
     from app.services.replays import resolve_recipe_accounts
 
     actor, owner = resolve_recipe_accounts(db, revision)
@@ -64,7 +63,7 @@ def test_bola_still_reproducible_on_vulnerable_build(db, lab_project, settings):
 
 
 def test_bola_fix_verified_when_patched_with_control(db, lab_project, settings):
-    finding, revision = _approve(db, lab_project, BOLA_RECIPE)
+    _finding, revision = _approve(db, lab_project, BOLA_RECIPE)
     from app.services.replays import resolve_recipe_accounts
 
     actor, owner = resolve_recipe_accounts(db, revision)
@@ -86,7 +85,7 @@ def test_bola_fix_verified_when_patched_with_control(db, lab_project, settings):
 def test_expired_identity_is_inconclusive(db, lab_project, settings):
     payload = copy.deepcopy(BOLA_RECIPE)
     payload["identity_refs"]["actor"] = "tenant-b-expired"
-    finding, revision = _approve(db, lab_project, payload)
+    _finding, revision = _approve(db, lab_project, payload)
     from app.services.replays import resolve_recipe_accounts
 
     actor, owner = resolve_recipe_accounts(db, revision)
@@ -108,7 +107,7 @@ def test_missing_fixture_is_inconclusive(db, lab_project, settings):
     payload = copy.deepcopy(BOLA_RECIPE)
     payload["fixture_refs"][0]["value"] = "INV-Z-9999"
     payload["fixture_refs"][0]["check_path"] = "/api/invoices/INV-Z-9999"
-    finding, revision = _approve(db, lab_project, payload)
+    _finding, revision = _approve(db, lab_project, payload)
     from app.services.replays import resolve_recipe_accounts
 
     actor, owner = resolve_recipe_accounts(db, revision)
@@ -129,7 +128,7 @@ def test_missing_fixture_is_inconclusive(db, lab_project, settings):
 def test_failed_positive_control_never_verifies_a_fix(db, lab_project, settings):
     payload = copy.deepcopy(BOLA_RECIPE)
     payload["expected_authorized"] = {"status": 201}
-    finding, revision = _approve(db, lab_project, payload)
+    _finding, revision = _approve(db, lab_project, payload)
     from app.services.replays import resolve_recipe_accounts
 
     actor, owner = resolve_recipe_accounts(db, revision)
@@ -148,7 +147,7 @@ def test_failed_positive_control_never_verifies_a_fix(db, lab_project, settings)
 
 
 def test_build_identity_mismatch_is_inconclusive(db, lab_project, settings):
-    finding, revision = _approve(db, lab_project, BOLA_RECIPE)
+    _finding, revision = _approve(db, lab_project, BOLA_RECIPE)
     build = lab_project.builds["2024.10.1"]
     build.expected_identity = "2024.10.9"
     db.flush()
@@ -171,7 +170,7 @@ def test_build_identity_mismatch_is_inconclusive(db, lab_project, settings):
 
 
 def test_unverified_build_identity_is_inconclusive(db, lab_project, settings):
-    finding, revision = _approve(db, lab_project, BOLA_RECIPE)
+    _finding, revision = _approve(db, lab_project, BOLA_RECIPE)
     build = lab_project.builds["2024.10.1"]
     build.expected_identity = ""
     db.flush()
@@ -192,7 +191,7 @@ def test_unverified_build_identity_is_inconclusive(db, lab_project, settings):
 
 
 def test_scope_denied_when_path_restriction_excludes_recipe(db, lab_project, settings):
-    finding, revision = _approve(db, lab_project, BOLA_RECIPE)
+    _finding, revision = _approve(db, lab_project, BOLA_RECIPE)
     from app.services.replays import resolve_recipe_accounts
 
     actor, owner = resolve_recipe_accounts(db, revision)
@@ -219,18 +218,11 @@ def test_export_document_vulnerability_is_reproducible(db, lab_project, settings
         severity="critical",
         scope="GET /api/exports/{invoice_id}/pdf",
     )
-    approve_recipe(
-        db, lab_project.project, finding, lab_project.operator, EXPORT_RECIPE
-    )
+    approve_recipe(db, lab_project.project, finding, lab_project.operator, EXPORT_RECIPE)
     from app.models import Recipe, RecipeRevision
     from app.services.replays import resolve_recipe_accounts
 
-    revision = (
-        db.query(RecipeRevision)
-        .join(Recipe)
-        .filter(Recipe.finding_id == finding.id)
-        .one()
-    )
+    revision = db.query(RecipeRevision).join(Recipe).filter(Recipe.finding_id == finding.id).one()
     actor, owner = resolve_recipe_accounts(db, revision)
     result = evaluate_recipe(
         db,
@@ -251,7 +243,7 @@ def test_export_document_vulnerability_is_reproducible(db, lab_project, settings
 
 def test_resolve_path_rejects_absolute_and_traversal(db, lab_project):
     with pytest.raises(Exception):  # noqa: B017 - PolicyError
-        from app.services.policy import PolicyError, TargetPolicy
+        from app.services.policy import TargetPolicy
 
         policy = TargetPolicy(
             base_url="http://127.0.0.1:8099",
@@ -260,6 +252,47 @@ def test_resolve_path_rejects_absolute_and_traversal(db, lab_project):
             allow_loopback=True,
         )
         policy.resolve("http://127.0.0.1:8099/deployments/2024.10.1", "http://evil.test/x")
-    assert resolve_path("/api/invoices/{invoice_id}", [{"name": "invoice_id", "value": "INV-1"}]) == (
-        "/api/invoices/INV-1"
+    assert resolve_path(
+        "/api/invoices/{invoice_id}", [{"name": "invoice_id", "value": "INV-1"}]
+    ) == ("/api/invoices/INV-1")
+
+
+def test_denied_metadata_destination_fails_closed(settings):
+    from app.services.replays import send
+
+    policy = TargetPolicy(
+        base_url="http://169.254.169.254",
+        allowed_origins=("http://169.254.169.254",),
+        path_prefixes=(),
+        allow_loopback=False,
     )
+    exchange = send(
+        policy=policy,
+        method="GET",
+        url="http://169.254.169.254/latest/meta-data",
+        headers={},
+    )
+    assert exchange.status is None
+    assert exchange.error is not None
+
+
+def test_out_of_scope_redirect_is_blocked(db, settings):
+    from app.services.policy import TargetPolicy
+    from app.services.replays import send
+
+    origin = settings.lab_base_url
+    policy = TargetPolicy(
+        base_url=origin,
+        allowed_origins=(origin,),
+        path_prefixes=("/deployments",),
+        allow_loopback=True,
+    )
+    exchange = send(
+        policy=policy,
+        method="GET",
+        url=f"{origin}/deployments/2024.10.1/api/redirect-outside",
+        headers={},
+    )
+    assert exchange.status == 307
+    assert exchange.redirect_blocked is True
+    assert exchange.redirect_target is not None

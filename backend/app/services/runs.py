@@ -659,6 +659,12 @@ def create_run(
     )
     db.add(run)
     db.flush()
+    if kind == RunKind.RELEASE_SCAN:
+        from app.services.releases import build_release_plan
+
+        snapshot["release_plan"] = build_release_plan(db, run)
+        run.scope_snapshot = snapshot
+        db.flush()
     job = Job(
         project_id=project.id,
         run_id=run.id,

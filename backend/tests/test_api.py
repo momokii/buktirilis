@@ -66,9 +66,7 @@ def setup_project(client: TestClient, lab_base: str) -> dict:
                 "password": PASSWORD,
                 "is_admin": False,
                 "memberships": (
-                    [{"project_id": project["id"], "role": role}]
-                    if role != "outsider"
-                    else []
+                    [{"project_id": project["id"], "role": role}] if role != "outsider" else []
                 ),
             },
         )
@@ -162,9 +160,7 @@ def test_cross_project_isolation(api, client):
     assert client.get(f"/api/projects/{project_id}/builds").status_code == 404
     assert client.get(f"/api/projects/{project_id}/accounts").status_code == 404
     # A directly guessed finding id from the other project must not resolve either.
-    assert (
-        client.get(f"/api/projects/{project_id}/findings/{uuid.uuid4()}").status_code == 404
-    )
+    assert client.get(f"/api/projects/{project_id}/findings/{uuid.uuid4()}").status_code == 404
 
 
 def test_build_outside_scope_and_openapi_override_fail_closed(api, client):
@@ -245,9 +241,7 @@ def test_report_counts_match_rows_and_filters(api, client, db):
     assert findings["items"]
     overview = client.get(f"/api/projects/{project['id']}/runs/{run_id}/report/overview").json()
     severity_total = sum(overview["severity"].values())
-    assert severity_total == len(
-        [row for row in findings["items"] if row["disposition"] == "open"]
-    )
+    assert severity_total == len([row for row in findings["items"] if row["disposition"] == "open"])
     severity = findings["items"][0]["severity"]
     filtered = client.get(
         f"/api/projects/{project['id']}/runs/{run_id}/report/findings",
@@ -388,9 +382,7 @@ def test_export_api_download_and_isolation(api, client, db):
     )
     assert response.status_code == 201, response.text
     export = response.json()["exports"][0]
-    download = client.get(
-        f"/api/projects/{project['id']}/exports/{export['id']}/download"
-    )
+    download = client.get(f"/api/projects/{project['id']}/exports/{export['id']}/download")
     assert download.status_code == 200
     assert download.headers["content-type"].startswith("application/json")
     assert "lab.tenant" not in download.text

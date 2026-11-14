@@ -79,7 +79,11 @@ BOLA_RECIPE = {
         }
     ],
     "identity_refs": {"actor": "tenant-b-dev", "owner": "tenant-a-owner"},
-    "expected_authorized": {"status": 200, "json_field": "tenant_id", "equals_identity_tenant": True},
+    "expected_authorized": {
+        "status": 200,
+        "json_field": "tenant_id",
+        "equals_identity_tenant": True,
+    },
     "expected_unauthorized": {
         "statuses": [200],
         "denial_statuses": [403, 404],
@@ -122,14 +126,16 @@ EXPORT_RECIPE = {
 
 def approve_recipe(db, project, finding, actor, payload: dict | None = None) -> Recipe:
     payload = dict(payload or BOLA_RECIPE)
-    recipe, revision = create_recipe_revision(
+    recipe, _revision = create_recipe_revision(
         db, project=project, finding=finding, payload=payload, actor=actor, approve=True
     )
     db.commit()
     return recipe
 
 
-def make_run(db, project, build, actor, *, kind=RunKind.BASELINE, status=RunStatus.COMPLETED, when=None) -> Run:
+def make_run(
+    db, project, build, actor, *, kind=RunKind.BASELINE, status=RunStatus.COMPLETED, when=None
+) -> Run:
     from app.models import utcnow
 
     run = Run(

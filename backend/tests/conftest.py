@@ -137,7 +137,7 @@ def admin_client(client: TestClient):
 
 def make_lab_project(db: Session, *, lab_base: str, admin, operator=None, developer=None):
     """Create the demo project, builds, and accounts used by integration tests."""
-    from app.models import Build, Project, ProjectMember, TargetConfig, TestAccount, User
+    from app.models import Build, Project, ProjectMember, TargetConfig, TestAccount
     from app.security import encrypt_secret
 
     project = Project(slug="atlas-test", name="Atlas Test", created_by=admin.id)
@@ -189,9 +189,7 @@ def make_lab_project(db: Session, *, lab_base: str, admin, operator=None, develo
     for user, role in ((operator, "operator"), (developer, "developer")):
         if user is not None:
             db.add(
-                ProjectMember(
-                    project_id=project.id, user_id=user.id, role=role, added_by=admin.id
-                )
+                ProjectMember(project_id=project.id, user_id=user.id, role=role, added_by=admin.id)
             )
     db.commit()
     return project, config, builds
@@ -235,7 +233,9 @@ def lab_project(db: Session, lab_server: str):
     project, config, builds = make_lab_project(
         db, lab_base=lab_server, admin=admin, operator=operator, developer=developer
     )
-    db.add(ProjectMember(project_id=project.id, user_id=viewer.id, role="viewer", added_by=admin.id))
+    db.add(
+        ProjectMember(project_id=project.id, user_id=viewer.id, role="viewer", added_by=admin.id)
+    )
     db.commit()
     return SimpleNamespace(
         admin=admin,

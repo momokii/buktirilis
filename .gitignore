@@ -49,3 +49,11 @@ backend/coverage.xml
 backend/.coverage
 *.log
 .DS_Store
+
+# Local process bookkeeping and tool caches.
+var-*.pid
+*.pid
+__pycache__/
+*.pyc
+lab/app/__pycache__/
+*.tsbuildinfo

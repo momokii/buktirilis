@@ -78,8 +78,10 @@ def redact_headers(headers: dict[str, str] | None) -> dict[str, str]:
 
 def redact_value(key: str, value: Any) -> Any:
     lowered = key.lower()
-    if lowered in SENSITIVE_FIELD_NAMES or lowered in SENSITIVE_HEADERS or any(
-        part in lowered for part in ("password", "secret", "token", "credential")
+    if (
+        lowered in SENSITIVE_FIELD_NAMES
+        or lowered in SENSITIVE_HEADERS
+        or any(part in lowered for part in ("password", "secret", "token", "credential"))
     ):
         return REDACTED
     if isinstance(value, dict):

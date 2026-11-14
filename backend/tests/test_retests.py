@@ -228,9 +228,7 @@ def test_guided_submission_requires_evidence_for_conclusive_outcome(db, lab_proj
 
 
 def test_evidence_validation_changes_retest_method(db, lab_project):
-    finding = make_finding(
-        db, lab_project.project, evidence_status="needs_validation"
-    )
+    finding = make_finding(db, lab_project.project, evidence_status="needs_validation")
     assert finding.evidence_status == "needs_validation"
     validate_evidence(
         db,

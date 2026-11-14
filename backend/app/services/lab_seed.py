@@ -13,6 +13,7 @@ import stat
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -61,21 +62,23 @@ def sync_profiles(db: Session) -> None:
         existing = db.execute(
             select(Profile).where(Profile.code == profile.code, Profile.version == profile.version)
         ).scalar_one_or_none()
-        payload = {
-            "code": profile.code,
-            "version": profile.version,
-            "name": profile.name,
-            "description": profile.description,
-            "status": "active",
-            "config": {
-                "scenarios": [scenario.code for scenario in profile.scenarios],
-                "reference_links": list(profile.reference_links),
-            },
+        config_payload: dict[str, Any] = {
+            "scenarios": [scenario.code for scenario in profile.scenarios],
+            "reference_links": list(profile.reference_links),
         }
         if existing is None:
-            db.add(Profile(**payload))
+            db.add(
+                Profile(
+                    code=profile.code,
+                    version=profile.version,
+                    name=profile.name,
+                    description=profile.description,
+                    status="active",
+                    config=config_payload,
+                )
+            )
         else:
-            existing.config = payload["config"]
+            existing.config = config_payload
             existing.description = profile.description
     db.flush()
 

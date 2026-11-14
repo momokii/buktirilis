@@ -2,15 +2,20 @@ SHELL := /bin/bash
 BACKEND := backend
 VENV := $(BACKEND)/.venv
 PY := $(VENV)/bin/python
-export APP_ENV ?= development
-export BUKTIRILIS_SECRET_KEY ?= dev-only-secret-key-change-me-please-0123456789
-export DATABASE_URL ?= postgresql+psycopg://buktirilis:buktirilis-dev-only@127.0.0.1:55432/buktirilis
-export ARTIFACT_ROOT ?= ./var/artifacts
-export STRIX_RUNS_ROOT ?= ./var/strix_runs
-export ALLOW_LOOPBACK_LAB_TARGETS ?= true
-export DEMO_SEED_ENABLED ?= true
-export LAB_BASE_URL ?= http://127.0.0.1:8099
-export PUBLIC_ORIGIN ?= http://127.0.0.1:5173
+
+# Local configuration is read from the gitignored .env file (copy .env.example).
+# A missing BUKTIRILIS_SECRET_KEY fails closed when the app starts.
+-include .env
+APP_ENV ?= development
+DATABASE_URL ?= postgresql+psycopg://buktirilis:buktirilis-dev-only@127.0.0.1:55432/buktirilis
+ARTIFACT_ROOT ?= ./var/artifacts
+STRIX_RUNS_ROOT ?= ./var/strix_runs
+ALLOW_LOOPBACK_LAB_TARGETS ?= true
+DEMO_SEED_ENABLED ?= true
+LAB_BASE_URL ?= http://127.0.0.1:8099
+PUBLIC_ORIGIN ?= http://127.0.0.1:5173
+
+export
 
 .PHONY: help install db lab api worker web dev test lint typecheck check demo seed migrate compose-config clean
 

@@ -42,7 +42,6 @@ from app.services.findings import (
     coverage_counts,
     normalise_scope,
     run_findings,
-    severity_counts,
     upsert_finding,
 )
 from app.services.profiles import (
@@ -575,7 +574,7 @@ def _import_coverage(
 ) -> list[RunCheck]:
     checks: list[RunCheck] = []
     coverage = bundle.coverage or {}
-    entries = coverage.get("entries") if isinstance(coverage.get("entries"), list) else []
+    entries: list[Any] = list(coverage.get("entries") or [])
     for index, entry in enumerate(entries):
         if not isinstance(entry, dict):
             continue
@@ -615,7 +614,7 @@ def _import_coverage(
         )
         db.add(check)
         checks.append(check)
-    gaps = coverage.get("gaps") if isinstance(coverage.get("gaps"), list) else []
+    gaps: list[Any] = list(coverage.get("gaps") or [])
     for index, gap in enumerate(gaps):
         surface = str(gap.get("surface") or "") if isinstance(gap, dict) else str(gap)
         check_key = f"engine-gap:{index}:{surface}"[:160]
@@ -667,6 +666,9 @@ def _import_surfaces(
     for entry in coverage.get("entries") or []:
         if isinstance(entry, dict) and entry.get("surface"):
             routes.setdefault(str(entry["surface"]), set()).add("recon")
+    for gap in coverage.get("gaps") or []:
+        if isinstance(gap, dict) and gap.get("surface"):
+            routes.setdefault(str(gap["surface"]), set()).add("recon")
     for record in bundle.vulnerabilities:
         endpoint = normalise_endpoint(record)
         if endpoint:
@@ -686,24 +688,27 @@ def _import_surfaces(
         if existing is not None:
             surfaces.append(existing)
             continue
-        tested = db.execute(
-            select(RunCheck.id).where(
-                RunCheck.run_id == run.id,
-                RunCheck.result.in_(
-                    [
-                        CoverageResult.TESTED_NO_FINDING.value,
-                        CoverageResult.FINDING_OBSERVED.value,
-                    ]
-                ),
-            )
-        ).all()
+        tested = any(
+            _route_matches(check.surface, route)
+            for check in db.execute(
+                select(RunCheck).where(
+                    RunCheck.run_id == run.id,
+                    RunCheck.result.in_(
+                        [
+                            CoverageResult.TESTED_NO_FINDING.value,
+                            CoverageResult.FINDING_OBSERVED.value,
+                        ]
+                    ),
+                )
+            ).scalars()
+        )
         surface = Surface(
             project_id=project.id,
             run_id=run.id,
             route=route[:300],
             methods=["GET"],
             source="openapi" if "openapi" in sources else "recon",
-            tested=bool(tested),
+            tested=tested,
         )
         db.add(surface)
         surfaces.append(surface)
@@ -730,7 +735,7 @@ def _ensure_planned_checks(
         )
     if not surfaces and build.openapi_document_id:
         document = db.get(OpenApiDocument, build.openapi_document_id)
-        for operation in document.operations or []:
+        for operation in (document.operations if document else []) or []:
             surfaces.append(
                 {"route": operation["path"], "methods": [operation["method"]], "source": "openapi"}
             )
@@ -798,10 +803,9 @@ def build_summary(db: Session, *, run: Run) -> str:
         finding_clause = f"{len(open_findings)} open finding(s): {severity_bits}"
     else:
         finding_clause = "No open findings were recorded in the tested scope"
-    tested = (
-        coverage["counts"].get(CoverageResult.TESTED_NO_FINDING.value, 0)
-        + coverage["counts"].get(CoverageResult.FINDING_OBSERVED.value, 0)
-    )
+    tested = coverage["counts"].get(CoverageResult.TESTED_NO_FINDING.value, 0) + coverage[
+        "counts"
+    ].get(CoverageResult.FINDING_OBSERVED.value, 0)
     coverage_clause = (
         f"{tested} of {coverage['denominator']} planned checks have a recorded result"
         if coverage["denominator"]

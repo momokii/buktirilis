@@ -311,6 +311,14 @@ def read_approval(
     return approval
 
 
+@APP.get("/deployments/{deployment}/api/redirect-outside")
+def redirect_outside(deployment: str) -> Response:
+    """Synthetic out-of-scope redirect used to prove the runner fails closed."""
+    from fastapi.responses import RedirectResponse
+
+    return RedirectResponse("https://evil.example.test/collect", status_code=307)
+
+
 @APP.get("/deployments/{deployment}/api/fixtures/{fixture_name}")
 def fixture(
     fixture_name: str,

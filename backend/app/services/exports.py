@@ -31,7 +31,7 @@ from reportlab.platypus import (
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.domain import OBSERVATION_CONCLUSIVE, CoverageResult, Severity
+from app.domain import CoverageResult, Severity
 from app.models import (
     Artifact,
     Build,
@@ -152,10 +152,15 @@ def build_snapshot(
             observation = latest_observation(db, item.finding.id, run.build_id)
             if observation is None or observation.observed_at <= run.completed_at:
                 continue
+            from app.domain import OBSERVATION_TO_VERIFICATION, ObservationOutcome
+
             latest_panel.append(
                 {
                     "finding_public_id": item.finding.public_id,
-                    "outcome": observation.outcome,
+                    "outcome": OBSERVATION_TO_VERIFICATION[
+                        ObservationOutcome(observation.outcome)
+                    ].value,
+                    "observation_outcome": observation.outcome,
                     "source": observation.source,
                     "observed_at": _iso(observation.observed_at),
                     "verification_kind": "latest_verification",

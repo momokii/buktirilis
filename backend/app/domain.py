@@ -117,7 +117,6 @@ CONCLUSIVE_OUTCOMES = frozenset(
 )
 
 
-
 class ComparisonBucket(StrEnum):
     FIX_VERIFIED = "fix_verified"
     STILL_REPRODUCIBLE = "still_reproducible"
@@ -136,9 +135,7 @@ class ObservationOutcome(StrEnum):
     INCONCLUSIVE = "inconclusive"
 
 
-OBSERVATION_CONCLUSIVE = frozenset(
-    {ObservationOutcome.OBSERVED, ObservationOutcome.NOT_OBSERVED}
-)
+OBSERVATION_CONCLUSIVE = frozenset({ObservationOutcome.OBSERVED, ObservationOutcome.NOT_OBSERVED})
 
 OBSERVATION_TO_VERIFICATION = {
     ObservationOutcome.OBSERVED: VerificationOutcome.STILL_REPRODUCIBLE,

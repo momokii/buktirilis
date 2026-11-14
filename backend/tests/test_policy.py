@@ -70,7 +70,9 @@ def test_loopback_disabled_by_default():
 
 def test_redirect_outside_scope_is_denied():
     with pytest.raises(PolicyError):
-        policy().check_redirect("https://evil.example.test/steal", from_url="https://staging.example.test/api/x")
+        policy().check_redirect(
+            "https://evil.example.test/steal", from_url="https://staging.example.test/api/x"
+        )
 
 
 def test_terminal_slash_and_ports_are_normalised():

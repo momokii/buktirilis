@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import logging
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -28,10 +27,6 @@ from app.models import (
     User,
 )
 from app.services import demo, ingest, releases
-
-logger = logging.getLogger(__name__)
-
-logger = logging.getLogger(__name__)
 from app.services.evidence import artifact_root
 from app.services.findings import coverage_counts
 from app.services.policy import PolicyError, TargetPolicy
@@ -52,9 +47,18 @@ from app.services.strix_adapter import (
     run_live,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def utcnow() -> datetime:
     return datetime.now(UTC)
+
+
+def _project_for(db: Session, run: Run) -> Project:
+    project = db.get(Project, run.project_id)
+    if project is None:
+        raise RuntimeError(f"run {run.id} references a missing project")
+    return project
 
 
 def probe_build_identity(policy: TargetPolicy, build: Build) -> dict[str, Any]:
@@ -433,7 +437,7 @@ def execute_run(db: Session, *, run: Run, job: Job, settings: Settings) -> dict[
                         _json.dumps(document.sanitized_json, indent=2), encoding="utf-8"
                     )
             profile = get_profile(run.profile_code, run.profile_version)
-            result = run_live(
+            live_result = run_live(
                 settings,
                 target_url=build.target_url,
                 depth=run.depth,
@@ -447,16 +451,16 @@ def execute_run(db: Session, *, run: Run, job: Job, settings: Settings) -> dict[
                 cancel_check=cancelled,
                 heartbeat=lambda: heartbeat(db, job=job, settings=settings),
             )
-            normalized = normalize_result(result)
+            normalized = normalize_result(live_result)
             snapshot = dict(run.scope_snapshot or {})
-            snapshot["live_result"] = live_result_row(result)
+            snapshot["live_result"] = live_result_row(live_result)
             run.scope_snapshot = snapshot
             db.flush()
             _record(
                 db,
                 run,
                 "Engine process finished: "
-                f"exit {result.exit_code}, status {result.raw_status or 'unknown'}.",
+                f"exit {live_result.exit_code}, status {live_result.raw_status or 'unknown'}.",
                 code="stage.discovery.engine",
             )
             if normalized["limitations"]:
@@ -472,14 +476,14 @@ def execute_run(db: Session, *, run: Run, job: Job, settings: Settings) -> dict[
                     StageState.FAILED.value,
                     normalized["reason"],
                 )
-                partial_dir = Path(result.artifacts_dir) if result.artifacts_dir else None
+                partial_dir = Path(live_result.artifacts_dir) if live_result.artifacts_dir else None
                 if partial_dir is not None and partial_dir.exists():
                     bundle = ingest.load_artifact_bundle(partial_dir)
                     if bundle.status != "missing":
                         ingest.ingest_run(
                             db,
                             run=run,
-                            project=db.get(Project, run.project_id),
+                            project=_project_for(db, run),
                             build=build,
                             bundle=bundle,
                             limitations=normalized["limitations"],
@@ -492,11 +496,13 @@ def execute_run(db: Session, *, run: Run, job: Job, settings: Settings) -> dict[
                     reason=normalized["reason"],
                     stage_code=StageCode.DISCOVERY.value,
                     error_code=(
-                        "cleanup_unconfirmed" if not result.cleanup_confirmed else "engine_failed"
+                        "cleanup_unconfirmed"
+                        if not live_result.cleanup_confirmed
+                        else "engine_failed"
                     ),
                 )
                 return {"failed": True}
-            artifacts_dir = Path(result.artifacts_dir) if result.artifacts_dir else None
+            artifacts_dir = Path(live_result.artifacts_dir) if live_result.artifacts_dir else None
         if artifacts_dir is not None:
             finish_stage(
                 db,
@@ -552,7 +558,7 @@ def execute_run(db: Session, *, run: Run, job: Job, settings: Settings) -> dict[
         summary = ingest.ingest_run(
             db,
             run=run,
-            project=db.get(Project, run.project_id),
+            project=_project_for(db, run),
             build=build,
             bundle=bundle,
             limitations=limitations,

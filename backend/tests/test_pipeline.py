@@ -44,7 +44,7 @@ def _create(db, lab_project, settings, *, kind, build_label, baseline=None, acto
         if account.project_id == lab_project.project.id
         and account.name in {"tenant-a-owner", "tenant-b-dev"}
     ]
-    run, created = create_run(
+    run, _created = create_run(
         db,
         settings=settings,
         project=lab_project.project,
@@ -104,7 +104,9 @@ def test_ingest_is_idempotent_and_missing_artifacts_are_explicit(db, lab_project
     )
     assert before == after
 
-    empty_run = make_run(db, lab_project.project, lab_project.builds["2024.10.3"], lab_project.operator)
+    empty_run = make_run(
+        db, lab_project.project, lab_project.builds["2024.10.3"], lab_project.operator
+    )
     result = ingest_run(
         db,
         run=empty_run,
@@ -147,9 +149,7 @@ def test_release_scan_verifies_fix_then_regresses(db, lab_project, settings):
     )
     db.refresh(release_b)
     assert release_b.status == "completed"
-    assert (
-        state_for_build(db, bola.id, release_b.build_id).outcome.value == "fix_verified"
-    )
+    assert state_for_build(db, bola.id, release_b.build_id).outcome.value == "fix_verified"
     export_finding = next(
         finding
         for finding in db.query(__import__("app.models", fromlist=["Finding"]).Finding).all()

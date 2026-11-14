@@ -6,8 +6,8 @@ from datetime import UTC, datetime, timedelta
 
 from app.domain import VerificationOutcome
 from app.services.findings import (
-    build_run_view,
     bucket_counts,
+    build_run_view,
     compare_scope,
     comparison_findings,
     compute_fingerprint,
@@ -61,9 +61,7 @@ def test_newest_observation_supersedes_earlier_fix_on_same_build(db, lab_project
     build = lab_project.builds["2024.10.1"]
     add_observation(db, finding, build, outcome="not_observed", observed_at=T0)
     assert state_for_build(db, finding.id, build.id).outcome == VerificationOutcome.FIX_VERIFIED
-    add_observation(
-        db, finding, build, outcome="observed", observed_at=T0 + timedelta(hours=1)
-    )
+    add_observation(db, finding, build, outcome="observed", observed_at=T0 + timedelta(hours=1))
     state = state_for_build(db, finding.id, build.id)
     assert state.outcome == VerificationOutcome.STILL_REPRODUCIBLE
     # Chronology is preserved, so historical snapshots stay stable.
@@ -78,9 +76,7 @@ def test_late_older_build_result_cannot_change_newer_build(db, lab_project):
     newer = lab_project.builds["2024.10.2"]
     older = lab_project.builds["2024.10.1"]
     add_observation(db, finding, newer, outcome="not_observed", observed_at=T0)
-    add_observation(
-        db, finding, older, outcome="observed", observed_at=T0 + timedelta(days=3)
-    )
+    add_observation(db, finding, older, outcome="observed", observed_at=T0 + timedelta(days=3))
     assert state_for_build(db, finding.id, newer.id).outcome == VerificationOutcome.FIX_VERIFIED
 
 
@@ -100,10 +96,20 @@ def test_regression_and_still_reproducible_comparisons(db, lab_project):
     run_c = _run(db, lab_project, "2024.10.3", T0 + timedelta(days=14))
     add_observation(db, finding, run_a.build_id, outcome="not_observed", observed_at=T0, run=run_a)
     add_observation(
-        db, finding, run_b.build_id, outcome="observed", observed_at=T0 + timedelta(days=7), run=run_b
+        db,
+        finding,
+        run_b.build_id,
+        outcome="observed",
+        observed_at=T0 + timedelta(days=7),
+        run=run_b,
     )
     add_observation(
-        db, finding, run_c.build_id, outcome="observed", observed_at=T0 + timedelta(days=14), run=run_c
+        db,
+        finding,
+        run_c.build_id,
+        outcome="observed",
+        observed_at=T0 + timedelta(days=14),
+        run=run_c,
     )
     b_rows = comparison_findings(db, run_a, run_b)
     c_rows = comparison_findings(db, run_b, run_c)
@@ -126,7 +132,12 @@ def test_newly_observed_and_fix_verified_buckets(db, lab_project):
     run_b = _run(db, lab_project, "2024.10.2", T0 + timedelta(days=7))
     add_observation(db, old, run_a.build_id, outcome="observed", observed_at=T0, run=run_a)
     add_observation(
-        db, old, run_b.build_id, outcome="not_observed", observed_at=T0 + timedelta(days=7), run=run_b
+        db,
+        old,
+        run_b.build_id,
+        outcome="not_observed",
+        observed_at=T0 + timedelta(days=7),
+        run=run_b,
     )
     add_observation(
         db, new, run_b.build_id, outcome="observed", observed_at=T0 + timedelta(days=7), run=run_b
@@ -194,9 +205,7 @@ def test_historical_run_view_is_stable_after_later_retest(db, lab_project):
 def test_stale_observation_is_not_a_verdict(db, lab_project):
     finding = make_finding(db, lab_project.project)
     build = lab_project.builds["2024.10.2"]
-    add_observation(
-        db, finding, build, outcome="not_observed", observed_at=T0, stale=True
-    )
+    add_observation(db, finding, build, outcome="not_observed", observed_at=T0, stale=True)
     state = state_for_build(db, finding.id, build.id)
     assert state.outcome == VerificationOutcome.AWAITING_RETEST
     assert state.stale is True

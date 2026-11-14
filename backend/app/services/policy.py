@@ -325,7 +325,7 @@ def sanitise_openapi(document: dict, policy: TargetPolicy) -> tuple[dict, list[s
             ) from exc
 
     operations: list[dict] = []
-    paths = document.get("paths")
+    paths = document.get("paths") or {}
     for path, item in paths.items():
         if not isinstance(item, dict):
             continue

@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.db import get_db
 from app.deps import Principal, ProjectAccess, get_principal, require_project
-from app.domain import CONCLUSIVE_OUTCOMES, RunKind, RunStatus, Severity
+from app.domain import CONCLUSIVE_OUTCOMES, Role, RunKind, RunStatus, Severity
 from app.models import Build, Finding, Run, RunCheck, Surface, TargetConfig
 from app.routers.deps import csrf_protected
 from app.serializers import iso, run_row
@@ -75,7 +75,7 @@ def list_runs(
     kind: str | None = Query(default=None),
     status: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
-    access: ProjectAccess = Depends(require_project("viewer")),
+    access: ProjectAccess = Depends(require_project(Role.VIEWER)),
     db: Session = Depends(get_db),
 ) -> dict:
     stmt = (
@@ -109,7 +109,7 @@ def list_runs(
 @ROUTER.post("/runs/preflight")
 def preview_preflight(
     payload: PreflightRequest,
-    access: ProjectAccess = Depends(require_project("operator")),
+    access: ProjectAccess = Depends(require_project(Role.OPERATOR)),
     db: Session = Depends(get_db),
 ) -> dict:
     build = db.get(Build, payload.build_id)
@@ -166,7 +166,7 @@ def _expected_checks(build: Build, profile, depth: str) -> list[dict]:
 @ROUTER.post("/runs", status_code=201)
 def request_run(
     payload: RunRequest,
-    access: ProjectAccess = Depends(require_project("operator")),
+    access: ProjectAccess = Depends(require_project(Role.OPERATOR)),
     db: Session = Depends(get_db),
     principal: Principal = Depends(csrf_protected),
 ) -> dict:
@@ -211,7 +211,7 @@ def request_run(
 @ROUTER.get("/runs/{run_id}")
 def read_run(
     run_id: uuid.UUID,
-    access: ProjectAccess = Depends(require_project("viewer")),
+    access: ProjectAccess = Depends(require_project(Role.VIEWER)),
     db: Session = Depends(get_db),
 ) -> dict:
     run = _run_or_404(db, access, run_id)
@@ -267,7 +267,7 @@ def read_run(
 @ROUTER.get("/runs/{run_id}/progress")
 def read_progress(
     run_id: uuid.UUID,
-    access: ProjectAccess = Depends(require_project("viewer")),
+    access: ProjectAccess = Depends(require_project(Role.VIEWER)),
     db: Session = Depends(get_db),
 ) -> dict:
     run = _run_or_404(db, access, run_id)
@@ -277,7 +277,7 @@ def read_progress(
 @ROUTER.post("/runs/{run_id}/cancel")
 def cancel(
     run_id: uuid.UUID,
-    access: ProjectAccess = Depends(require_project("operator")),
+    access: ProjectAccess = Depends(require_project(Role.OPERATOR)),
     db: Session = Depends(get_db),
     principal: Principal = Depends(csrf_protected),
 ) -> dict:
@@ -352,7 +352,7 @@ def report_findings(
     surface: str | None = Query(default=None),
     q: str | None = Query(default=None),
     sort: str = Query(default="severity"),
-    access: ProjectAccess = Depends(require_project("viewer")),
+    access: ProjectAccess = Depends(require_project(Role.VIEWER)),
     db: Session = Depends(get_db),
 ) -> dict:
     run = _run_or_404(db, access, run_id)
@@ -392,7 +392,7 @@ def report_findings(
 @ROUTER.get("/runs/{run_id}/report/overview")
 def report_overview(
     run_id: uuid.UUID,
-    access: ProjectAccess = Depends(require_project("viewer")),
+    access: ProjectAccess = Depends(require_project(Role.VIEWER)),
     db: Session = Depends(get_db),
 ) -> dict:
     run = _run_or_404(db, access, run_id)
@@ -467,7 +467,7 @@ def report_overview(
 @ROUTER.get("/runs/{run_id}/report/coverage")
 def report_coverage(
     run_id: uuid.UUID,
-    access: ProjectAccess = Depends(require_project("viewer")),
+    access: ProjectAccess = Depends(require_project(Role.VIEWER)),
     db: Session = Depends(get_db),
 ) -> dict:
     run = _run_or_404(db, access, run_id)
@@ -551,7 +551,7 @@ def report_coverage(
 def compare_builds(
     baseline_run_id: uuid.UUID | None = Query(default=None),
     current_run_id: uuid.UUID | None = Query(default=None),
-    access: ProjectAccess = Depends(require_project("viewer")),
+    access: ProjectAccess = Depends(require_project(Role.VIEWER)),
     db: Session = Depends(get_db),
 ) -> dict:
     project_runs = list(

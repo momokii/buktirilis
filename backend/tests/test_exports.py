@@ -22,7 +22,9 @@ def _report(db, lab_project, settings):
     run = make_run(db, lab_project.project, lab_project.builds["2024.10.2"], lab_project.operator)
     run.completed_at = NOW
     run.snapshot_at = NOW
-    run.summary = "1 open finding. 2 of 4 planned checks have a recorded result. Coverage is incomplete."
+    run.summary = (
+        "1 open finding. 2 of 4 planned checks have a recorded result. Coverage is incomplete."
+    )
     run.limitations = ["The export surface was inventoried but not tested."]
     run.coverage_complete = False
     db.flush()
@@ -63,7 +65,10 @@ def _report(db, lab_project, settings):
             "request": {
                 "method": "GET",
                 "url": "http://127.0.0.1:18099/deployments/2024.10.2/api/invoices/INV-A-1001",
-                "headers": {"Authorization": "Bearer lab.tenant-b-dev", "Accept": "application/json"},
+                "headers": {
+                    "Authorization": "Bearer lab.tenant-b-dev",
+                    "Accept": "application/json",
+                },
                 "body": "",
             },
             "response": {
@@ -74,7 +79,7 @@ def _report(db, lab_project, settings):
             "actor": "tenant-b-dev",
             "notes": "unauthorized request",
         },
-        highlight=['"tenant_id": \'tenant-a\''],
+        highlight=["\"tenant_id\": 'tenant-a'"],
     )
     db.commit()
     return run, finding
@@ -82,14 +87,13 @@ def _report(db, lab_project, settings):
 
 def test_json_export_is_sanitised_and_complete(db, lab_project, settings):
     run, finding = _report(db, lab_project, settings)
-    exports = create_export(db, project=lab_project.project, run=run, fmt="json", actor=lab_project.viewer)
+    exports = create_export(
+        db, project=lab_project.project, run=run, fmt="json", actor=lab_project.viewer
+    )
     db.commit()
     assert len(exports) == 1
     export = exports[0]
-    payload = json.loads(
-        (export.payload)
-        and json.dumps(export.payload)
-    )
+    payload = json.loads((export.payload) and json.dumps(export.payload))
     assert payload["schema_version"] == "buktirilis.report.v1"
     assert payload["run"]["id"] == str(run.id)
     assert payload["builds"][0]["label"] == "2024.10.2"
@@ -106,7 +110,9 @@ def test_csv_exports_parse_and_neutralise_formulas(db, lab_project, settings):
     run, finding = _report(db, lab_project, settings)
     finding.title = '=HYPERLINK("http://evil.example/","click")'
     db.commit()
-    exports = create_export(db, project=lab_project.project, run=run, fmt="csv", actor=lab_project.viewer)
+    exports = create_export(
+        db, project=lab_project.project, run=run, fmt="csv", actor=lab_project.viewer
+    )
     db.commit()
     formats = {export.format for export in exports}
     assert formats == {"csv_findings", "csv_coverage"}
@@ -130,9 +136,12 @@ def test_csv_exports_parse_and_neutralise_formulas(db, lab_project, settings):
 
 def test_pdf_is_paginated_and_readable(db, lab_project, settings):
     run, finding = _report(db, lab_project, settings)
-    exports = create_export(db, project=lab_project.project, run=run, fmt="pdf", actor=lab_project.viewer)
+    exports = create_export(
+        db, project=lab_project.project, run=run, fmt="pdf", actor=lab_project.viewer
+    )
     db.commit()
     from pypdf import PdfReader
+
     from app.services.evidence import read_bytes
 
     artifact = db.get(
@@ -153,7 +162,9 @@ def test_pdf_is_paginated_and_readable(db, lab_project, settings):
 
 def test_frozen_snapshot_does_not_change_after_later_retest(db, lab_project, settings):
     run, finding = _report(db, lab_project, settings)
-    exports = create_export(db, project=lab_project.project, run=run, fmt="pdf", actor=lab_project.viewer)
+    exports = create_export(
+        db, project=lab_project.project, run=run, fmt="pdf", actor=lab_project.viewer
+    )
     db.commit()
     original = exports[0]
     original_sha = original.sha256
@@ -174,14 +185,12 @@ def test_frozen_snapshot_does_not_change_after_later_retest(db, lab_project, set
         db, project=lab_project.project, run=run, fmt="json", actor=lab_project.viewer
     )
     db.commit()
-    assert (
-        refreshed[0].payload["findings"][0]["verification"]["outcome"] == "fix_verified"
-    )
+    assert refreshed[0].payload["findings"][0]["verification"]["outcome"] == "fix_verified"
     assert refreshed[0].payload["latest_verification"]
 
 
 def test_filtered_export_is_labelled_as_subset(db, lab_project, settings):
-    run, finding = _report(db, lab_project, settings)
+    run, _ = _report(db, lab_project, settings)
     exports = create_export(
         db,
         project=lab_project.project,
@@ -199,8 +208,10 @@ def test_filtered_export_is_labelled_as_subset(db, lab_project, settings):
 
 
 def test_export_payload_has_no_credential_and_evidence_is_explicit(db, lab_project, settings):
-    run, finding = _report(db, lab_project, settings)
-    exports = create_export(db, project=lab_project.project, run=run, fmt="json", actor=lab_project.viewer)
+    run, _ = _report(db, lab_project, settings)
+    exports = create_export(
+        db, project=lab_project.project, run=run, fmt="json", actor=lab_project.viewer
+    )
     db.commit()
     payload = exports[0].payload
     evidence = payload["findings"][0]["evidence"]
@@ -220,7 +231,9 @@ def test_render_pdf_handles_empty_report(db, lab_project, settings):
     run.summary = "No open findings were recorded."
     run.coverage_complete = True
     db.flush()
-    exports = create_export(db, project=lab_project.project, run=run, fmt="pdf", actor=lab_project.viewer)
+    exports = create_export(
+        db, project=lab_project.project, run=run, fmt="pdf", actor=lab_project.viewer
+    )
     db.commit()
     from pypdf import PdfReader
 

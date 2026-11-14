@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain import (
@@ -259,9 +259,7 @@ def state_for_build(
     as_of: datetime | None = None,
 ) -> FindingState:
     observation = latest_observation(db, finding_id, build_id, as_of=as_of)
-    if observation is None or observation.outcome not in {
-        o.value for o in OBSERVATION_CONCLUSIVE
-    }:
+    if observation is None or observation.outcome not in {o.value for o in OBSERVATION_CONCLUSIVE}:
         if as_of is not None:
             return FindingState(
                 finding_id=finding_id,
@@ -326,16 +324,20 @@ class RunFinding:
 
 def run_findings(db: Session, run: Run) -> list[Finding]:
     """Findings touched by this run, plus findings with accepted evidence on its build."""
-    touched = set(
-        db.execute(select(Observation.finding_id).where(Observation.run_id == run.id)).scalars()
-    )
-    touched.update(
-        db.execute(
-            select(RunCheck.finding_id).where(
-                RunCheck.run_id == run.id, RunCheck.finding_id.is_not(None)
-            )
+    touched: set[uuid.UUID] = {
+        finding_id
+        for finding_id in db.execute(
+            select(Observation.finding_id).where(Observation.run_id == run.id)
         ).scalars()
-    )
+        if finding_id is not None
+    }
+    for finding_id in db.execute(
+        select(RunCheck.finding_id).where(
+            RunCheck.run_id == run.id, RunCheck.finding_id.is_not(None)
+        )
+    ).scalars():
+        if finding_id is not None:
+            touched.add(finding_id)
     touched.update(
         db.execute(
             select(Observation.finding_id).where(
@@ -538,8 +540,12 @@ def coverage_counts(db: Session, run: Run) -> dict[str, Any]:
         "unknown": unknown,
         "denominator": total,
         "surfaces_checked": len(
-            {row.surface for row in rows if row.result == CoverageResult.TESTED_NO_FINDING.value
-             or row.result == CoverageResult.FINDING_OBSERVED.value}
+            {
+                row.surface
+                for row in rows
+                if row.result == CoverageResult.TESTED_NO_FINDING.value
+                or row.result == CoverageResult.FINDING_OBSERVED.value
+            }
         ),
         "coverage_complete": run.coverage_complete,
     }
@@ -638,6 +644,11 @@ def _bucket(item: RunFinding, base_state: FindingState | None) -> tuple[Comparis
     finding = item.finding
     if finding.disposition != "open":
         return (ComparisonBucket.INCOMPARABLE, f"Finding is marked {finding.disposition}")
+    if finding.evidence_status == EvidenceStatus.NEEDS_VALIDATION:
+        return (
+            ComparisonBucket.NEEDS_VALIDATION,
+            "Evidence needs validation; the verification outcome is not yet reliable",
+        )
     if item.state.stale:
         return (ComparisonBucket.INCOMPARABLE, item.state.stale_note or "Verification is stale")
     outcome = item.state.outcome
@@ -696,7 +707,8 @@ def latest_verification_panel(
                 "finding_id": row["id"],
                 "public_id": row["public_id"],
                 "title": row["title"],
-                "outcome": latest.outcome,
+                "outcome": OBSERVATION_TO_VERIFICATION[ObservationOutcome(latest.outcome)].value,
+                "observation_outcome": latest.outcome,
                 "source": latest.source,
                 "observed_at": _iso(latest.observed_at),
                 "observation_id": str(latest.id),

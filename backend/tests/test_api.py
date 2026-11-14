@@ -339,6 +339,13 @@ def test_retest_flow_and_guided_review(api, client, db):
     assert detail["verification"]["outcome"] == "fix_verified"
     assert detail["attempts"][0]["outcome"] == "fix_verified"
     assert detail["attempts"][0]["positive_control"]["ok"] is True
+    # A developer may mark the finding ready for retest (work scheduling only).
+    ready = client.post(
+        f"/api/projects/{project['id']}/findings/{finding['id']}/ready",
+        json={"build_id": api["builds"]["2024.10.2"]},
+    )
+    assert ready.status_code == 200, ready.text
+    assert "does not change the verification outcome" in ready.json()["note"]
     # Guided submission stays pending until a reviewer accepts it.
     login(client, developer["email"])
     guided = client.post(

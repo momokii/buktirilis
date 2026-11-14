@@ -172,7 +172,7 @@ def read_finding(
 def mark_ready_for_retest(
     finding_id: uuid.UUID,
     payload: ReadyRequest,
-    access: ProjectAccess = Depends(require_project(Role.OPERATOR)),
+    access: ProjectAccess = Depends(require_project(Role.DEVELOPER)),
     db: Session = Depends(get_db),
     principal: Principal = Depends(csrf_protected),
 ) -> dict:

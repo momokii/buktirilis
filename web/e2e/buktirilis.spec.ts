@@ -207,6 +207,21 @@ test("no serious accessibility violations on report and finding pages", async ({
   ).toEqual([]);
 });
 
+test("login restores the intended deep link", async ({ page }) => {
+  await signIn(page);
+  const projectLink = await page.getByRole("link", { name: /Atlas Billing/ }).first().getAttribute("href");
+  expect(projectLink).toMatch(/^\/projects\//);
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
+  await page.goto(projectLink ?? "/projects");
+  await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
+  const creds = credentials().operator;
+  await page.getByLabel("Email").fill(creds.email);
+  await page.getByLabel("Password").fill(creds.password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByRole("heading", { name: "Atlas Billing", level: 1 })).toBeVisible();
+});
+
 test.describe("narrow layout", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 

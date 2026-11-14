@@ -200,7 +200,7 @@ export function FindingPage() {
             <LinkButton to={backLink} variant="secondary">
               Back to findings
             </LinkButton>
-            {data.build && data.capabilities.can_operate ? (
+            {data.build && data.capabilities.can_retest ? (
               <Button
                 onClick={() =>
                   void action(`/api/projects/${project.id}/findings/${data.id}/ready`, {

@@ -75,9 +75,12 @@ def build_release_plan(db: Session, run: Run) -> dict[str, Any]:
 
     candidates.sort(
         key=lambda item: (
-            0 if item["severity"] in {Severity.CRITICAL.value, Severity.HIGH.value} else 1,
-            0 if item["marked_ready"] else 1,
+            # Open Critical/High first, then remaining Ready-for-Retest cases, then the rest.
+            0
+            if item["severity"] in {Severity.CRITICAL.value, Severity.HIGH.value}
+            else (1 if item["marked_ready"] else 2),
             _severity_rank(item["severity"]),
+            item.get("created_at") or "",
             item["public_id"],
         )
     )
@@ -150,6 +153,7 @@ def _candidate(db: Session, run: Run, finding: Finding, baseline: Run) -> dict[s
     return {
         "finding_id": str(finding.id),
         "public_id": finding.public_id,
+        "created_at": finding.created_at.isoformat(),
         "title": finding.title,
         "severity": finding.severity,
         "marked_ready": ready,

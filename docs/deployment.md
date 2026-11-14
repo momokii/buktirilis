@@ -112,8 +112,39 @@ Prove the boundary with three checks before the first live pilot:
 - a denied local destination (metadata, control plane) is refused by the worker;
 - an out-of-scope redirect is refused rather than followed.
 
-Record the results in the deployment runbook. Until then, keep
+A reproducible probe ships in `scripts/verify-isolation.sh`. Run it **inside the worker
+network namespace** (not on the web host):
+
+```bash
+APPROVED_TARGET=http://127.0.0.1:8099/deployments/2024.10.1 \
+  ./scripts/verify-isolation.sh
+```
+
+On the worker VM, enforce the contract with host firewalling before the probe. Example
+nftables policy (adapt names/IPs; provider endpoint is the only other allowed outbound):
+
+```nft
+table inet buktirilis {
+  chain output {
+    type filter hook output priority 0; policy drop;
+    oif "lo" accept
+    ip daddr <staging-ip> tcp dport { 80, 443 } accept
+    ip daddr <provider-ip> tcp dport 443 accept
+    ct state established,related accept
+    meta l4proto { icmp, ipv6-icmp } accept
+    counter log prefix "buktirilis-egress-deny " drop
+  }
+}
+```
+
+Also block the container bridge from the host management network and metadata routes.
+Record the probe output in the deployment runbook. Until then, keep
 `LIVE_EXECUTION_ENABLED=false`; demo runs remain fully usable.
+
+> The worker must run on its own host/VM. Do **not** mount the host Docker socket into the
+> web or API containers. If the pinned Strix runtime requires daemon access to launch its
+> child sandbox, that daemon belongs to the dedicated worker VM and its network policy, not
+> to the application host.
 
 Strix's own container build and any bundled tooling (including Caido, if present in the
 image) carry their own licence terms. BuktiRilis does not redistribute the image; confirm
@@ -133,6 +164,11 @@ See [docs/strix-contract.md](strix-contract.md) for the pinned contract and arti
   change.
 - Provider/model keys belong to the worker environment only. They must not appear in run
   records, exports, or browser responses.
+- Live authenticated exploration is not enabled in this release: the adapter deliberately
+  never writes test credentials into the engine instruction or workspace, and the model can
+  see whatever the engine sends it. Authenticated cross-tenant checks are covered by
+  BuktiRilis's own constrained replays. A live credential-injection path needs its own
+  threat review, short-lived tokens, and artifact sanitization before it can be enabled.
 
 ## 5. Operational checks
 

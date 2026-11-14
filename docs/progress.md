@@ -7,12 +7,12 @@ Browser UI: React/TypeScript. Backend/worker: Python/FastAPI. DB: PostgreSQL.
 
 | # | Milestone | Status | Commit |
 |---|---|---|---|
-| M1 | Inspection, contract, foundation (Git, schema, auth, policy, worker, tests) | Completed | see `git log` |
-| M2 | Browser vertical slice: project/build/run/report/finding, filters, scroll restoration | Completed | see `git log` |
-| M3 | Evidence, automatic + guided retest, reviewer acceptance, readiness | Completed | see `git log` |
-| M4 | Frozen PDF/CSV/JSON exports with snapshots | Completed | see `git log` |
-| M5 | Worker, live Strix adapter, synthetic lab, isolation preflight | Adapter implemented; live execution **not observed** | see `git log` |
-| M6 | Release Scan, discovery, comparison, final browser verification | Completed (demo path) | see `git log` |
+| M1 | Inspection, contract, foundation (Git, schema, auth, policy, worker, tests) | Completed | `a0eeedb` |
+| M2 | Browser vertical slice: project/build/run/report/finding, filters, scroll restoration | Completed | `0b9d286` |
+| M3 | Evidence, automatic + guided retest, reviewer acceptance, readiness | Completed | `0b9d286` |
+| M4 | Frozen PDF/CSV/JSON exports with snapshots | Completed | `0b9d286` |
+| M5 | Worker, live Strix adapter, synthetic lab, isolation preflight | Adapter implemented; live execution **not observed** | `a0eeedb` + `0b9d286` |
+| M6 | Release Scan, discovery, comparison, final browser verification | Completed (demo path) | `0b9d286` + `27fedbe` |
 
 ## What is delivered
 
@@ -45,13 +45,14 @@ container on `127.0.0.1:55432`, lab on `127.0.0.1:8099`.
 | Backend tests | `cd backend && .venv/bin/python -m pytest` | **80 passed** |
 | Web types | `cd web && npm run typecheck` | **Passed** |
 | Web build | `cd web && npm run build` | **Passed** (production bundle) |
-| Browser E2E | `cd web && npx playwright test` | **8 passed** (1440 + 390) |
+| Browser E2E | `cd web && npx playwright test` | **9 passed** (1440 + 390) |
 | Accessibility | axe-core via Playwright, WCAG 2 A/AA + 2.1/2.2 AA | **No serious/critical violations** |
 | Migrations | `alembic upgrade head && alembic check` | **No pending model diff** |
 | Fresh seed | new DB → `alembic upgrade head` → `python -m app.cli seed-demo` | **Passed**; 4 users, 1 project, 3 runs, 4 findings, 5 exports |
 | PDF output | pypdf on the seeded snapshot | **6 pages**, has snapshot time + limitations |
 | CSV/JSON | parsed seeded exports | findings/coverage agree; no credential values |
 | Compose syntax | `docker compose config` (base + demo profile) | **Valid** |
+| Isolation probe script | `bash -n scripts/verify-isolation.sh` | **Syntax passed**; execution requires the provisioned worker |
 
 Evidence screenshots: `docs/screenshots/` (report overview, filtered findings, finding
 detail, coverage, comparison, 390 px report/findings/finding).
@@ -97,5 +98,7 @@ detail, coverage, comparison, 390 px report/findings/finding).
    isolation probes in `docs/deployment.md`.
 2. Run one live baseline against the controlled lab target; compare its normalized records
    with the fixture contract and record the observed artifact shapes.
-3. Add the observed real artifact sample as a regression fixture (sanitized) before enabling
+3. Run `scripts/verify-isolation.sh` inside the worker network namespace and record the
+   allowed/denied/redirect output in the runbook.
+4. Add the observed real artifact sample as a regression fixture (sanitized) before enabling
    live mode for the pilot group.

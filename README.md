@@ -206,7 +206,7 @@ Verified in this environment (see [docs/progress.md](docs/progress.md) for exact
   retest/review semantics, verdict derivation, comparison buckets, pipeline, cancellation,
   revoked access, worker lease reconciliation, exports, API/CSRF/isolation, and the Strix
   subprocess contract.
-- Frontend: TypeScript build and **8 Playwright tests** at 1440 px and 390 px, including
+- Frontend: TypeScript build and **9 Playwright tests** at 1440 px and 390 px, including
   keyboard tab navigation, both retest paths, frozen export download, comparison, and an
   axe-core scan with no serious/critical violations.
 - PDF export: 6 pages for the demo release-scan snapshot; CSV and JSON parse and agree.
@@ -226,12 +226,17 @@ Verified in this environment (see [docs/progress.md](docs/progress.md) for exact
 | `web/e2e/` | Playwright browser and accessibility tests |
 | `docs/` | Contract, deployment, decisions, progress, screenshots |
 | `compose.yaml` | Single-host deployment (db, api, worker, web, demo lab profile) |
+| `scripts/verify-isolation.sh` | Worker-side allowed/denied/redirect probe for the live boundary |
 
 ## Known limits
 
 - **Live Strix execution was not observed.** The adapter, normalization, cancellation, and
   artifact contract are tested with a fake CLI; the real pinned binary needs a provisioned
   worker and an approved model.
+- **Live authenticated exploration is not enabled.** The adapter never writes test
+  credentials into the engine's instruction or workspace. Authenticated cross-tenant checks
+  are covered by BuktiRilis's constrained replays; wiring credentials into the engine needs a
+  separate threat review and artifact-sanitization path.
 - **Network isolation is documented, not demonstrated** on this host. The application
   enforces its own target policy and refuses loopback unless explicitly enabled, but the
   sandbox network contract must be proven on the deployment host before live use.

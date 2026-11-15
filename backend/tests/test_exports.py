@@ -185,8 +185,10 @@ def test_frozen_snapshot_does_not_change_after_later_retest(db, lab_project, set
         db, project=lab_project.project, run=run, fmt="json", actor=lab_project.viewer
     )
     db.commit()
-    assert refreshed[0].payload["findings"][0]["verification"]["outcome"] == "fix_verified"
+    # A new export of this run keeps the recorded snapshot and labels later work separately.
+    assert refreshed[0].payload["findings"][0]["verification"]["outcome"] == "still_reproducible"
     assert refreshed[0].payload["latest_verification"]
+    assert refreshed[0].payload["latest_verification"][0]["outcome"] == "fix_verified"
 
 
 def test_filtered_export_is_labelled_as_subset(db, lab_project, settings):

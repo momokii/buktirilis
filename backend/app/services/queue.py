@@ -83,6 +83,17 @@ def requeue_job(db: Session, *, job: Job, settings: Settings, delay_seconds: int
 def reconcile(db: Session, *, worker_id: str) -> list[str]:
     """Mark expired leases as interrupted; never silently re-run uncertain work."""
     now = utcnow()
+    # Safety net for cancel requests that were queued but never claimed.
+    for job in db.execute(
+        select(Job).where(Job.state == "cancel_requested", Job.lease_expires_at.is_(None))
+    ).scalars():
+        finish_job(db, job=job, state="canceled", error_code="canceled")
+        _terminal_run(
+            db,
+            job,
+            status=RunStatus.CANCELED,
+            detail="Cancellation was requested before a worker claimed the job.",
+        )
     expired = list(
         db.execute(
             select(Job).where(

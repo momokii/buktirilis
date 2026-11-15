@@ -26,7 +26,6 @@ from app.services.findings import (
     finding_row,
     latest_verification_panel,
     severity_counts,
-    state_for_build,
 )
 from app.services.profiles import (
     ACCESS_CONTROL_CODE,
@@ -402,11 +401,7 @@ def report_overview(
     coverage = coverage_counts(db, run)
     severity = severity_counts(rows)
     open_rows = [row for row in rows if row.finding.disposition == "open"]
-    awaiting = sum(
-        1
-        for item in rows
-        if state_for_build(db, item.finding.id, run.build_id).outcome == "awaiting_retest"
-    )
+    awaiting = sum(1 for item in rows if item.state.outcome == "awaiting_retest")
     needs_validation = sum(1 for item in rows if item.finding.evidence_status == "needs_validation")
     guided_pending = sum(
         1 for item in rows if eligibility(item.finding) in {"guided", "pending_evidence_review"}
@@ -595,8 +590,10 @@ def compare_builds(
             "bucket_counts": {},
             "scope": {},
         }
-    rows = comparison_findings(db, baseline, current)
     scope = compare_scope(baseline, current)
+    # Demo and live evidence never produce a verdict against each other; return no rows
+    # rather than labelling buckets that are not comparable.
+    rows = comparison_findings(db, baseline, current) if scope["comparable"] else []
     return {
         "comparable": scope["comparable"],
         "incomparable_reason": scope["incomparable_reason"],

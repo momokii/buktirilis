@@ -43,10 +43,10 @@ container on `127.0.0.1:55432`, lab on `127.0.0.1:8099`.
 | Backend lint | `cd backend && .venv/bin/ruff check app tests` | **Passed** |
 | Backend format | `cd backend && .venv/bin/ruff format --check app tests` | **Passed** |
 | Backend types | `cd backend && .venv/bin/mypy app` | **Passed** (38 files) |
-| Backend tests | `cd backend && .venv/bin/python -m pytest` | **81 passed** |
+| Backend tests | `cd backend && .venv/bin/python -m pytest` | **86 passed** |
 | Web types | `cd web && npm run typecheck` | **Passed** |
 | Web build | `cd web && npm run build` | **Passed** (production bundle) |
-| Browser E2E | `cd web && npx playwright test` | **11 passed** (deployed tailnet URL, 1440 + 390) |
+| Browser E2E | `cd web && npx playwright test` | **12 passed** (deployed tailnet URL, 1440 + 390) |
 | Accessibility | axe-core via Playwright, WCAG 2 A/AA + 2.1/2.2 AA | **No serious/critical violations** |
 | Migrations | `alembic upgrade head && alembic check` | **No pending model diff** |
 | Fresh seed | new DB → `alembic upgrade head` → `python -m app.cli seed-demo` | **Passed**; 4 users, 1 project, 3 runs, 4 findings, 5 exports |
@@ -55,7 +55,7 @@ container on `127.0.0.1:55432`, lab on `127.0.0.1:8099`.
 | Compose syntax | `docker compose config` (base + demo profile) | **Valid** |
 | Isolation probe script | `bash -n scripts/verify-isolation.sh` | **Syntax passed**; execution requires the provisioned worker |
 | Compose deployment | `make deploy` on this host | **Running** on `http://100.124.184.116:8088`; api/db/lab healthy, web bound to the tailnet address only |
-| Deployed browser E2E | `E2E_EXTERNAL=1 E2E_BASE_URL=http://100.124.184.116:8088 ... npx playwright test` | **11 passed** |
+| Deployed browser E2E | `E2E_EXTERNAL=1 E2E_BASE_URL=http://100.124.184.116:8088 ... npx playwright test` | **12 passed** |
 | Restart persistence | `docker compose restart api worker web` | Login, 3 runs, and exports survived |
 
 Evidence screenshots: `docs/screenshots/` (report overview, filtered findings, finding
@@ -82,6 +82,36 @@ detail, coverage, comparison, 390 px report/findings/finding).
   artifact, and export routes; viewer cannot start a retest.
 - **UI quality:** Verified at 1440 and 390; no page-level horizontal overflow; keyboard tab
   navigation and axe scan pass.
+
+## Hardening pass after code review (2026-11-15)
+
+Findings fixed and covered by tests:
+
+1. **Cancelling a queued run left it stuck.** A run canceled before a worker claimed it
+   stayed `cancel_requested` forever because no worker would claim a canceled job. Queued
+   cancellation is now terminal immediately; reconcile also finalizes orphaned cancel
+   requests.
+2. **Queued retests did not re-check authorization.** A retest queued before membership or
+   target-policy changes could still execute against the build's old policy. Execution now
+   re-checks the current policy revision, requester access, recipe approval, and finding
+   disposition; failures are inconclusive with no evidence.
+3. **Comparison used live state instead of the selected snapshot.** A retest after the
+   current run could change its comparison bucket. Current and baseline outcomes now use
+   each run's completion snapshot; later work appears only in Latest verification.
+4. **Historical exports could show a later verdict as the run's verdict.** Exports now use
+   the run snapshot for the primary verification and label later evidence separately.
+5. **Historical run finding membership could grow.** Later evidence on the same build no
+   longer adds findings to a completed run's report; they appear in Latest verification.
+6. **Cross-mode comparisons could still compute buckets.** Demo and live runs now return no
+   bucket rows with an explicit incomparable state.
+7. **Pending guided review reason was vague.** Changes-requested submissions report the
+   reviewer reason instead of "no comparable retest".
+8. **Release Scan did not re-check authorization at stage 2.** A policy narrowed during
+   known-finding replay now stops discovery before it starts and marks the run failed
+   with a recorded reason.
+
+Backend tests increased from 81 to **86**; browser tests from 11 to **12** (login and
+admin/settings axe scans added).
 
 ## Blocked / not verified
 

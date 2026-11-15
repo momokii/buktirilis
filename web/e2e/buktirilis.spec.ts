@@ -217,6 +217,20 @@ test("no serious accessibility violations on report and finding pages", async ({
   ).toEqual([]);
 });
 
+test("login page has no serious accessibility violations", async ({ page }) => {
+  await page.goto("/login");
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+    .analyze();
+  const serious = results.violations.filter(
+    (violation) => violation.impact === "serious" || violation.impact === "critical",
+  );
+  expect(
+    serious,
+    JSON.stringify(serious.map((violation) => violation.id)),
+  ).toEqual([]);
+});
+
 test("admin and project settings screens expose the operational state", async ({ page }) => {
   await signIn(page, "admin");
   await page.getByRole("link", { name: "Admin", exact: true }).click();
@@ -237,6 +251,13 @@ test("admin and project settings screens expose the operational state", async ({
   await expect(page.getByRole("heading", { name: "Project settings" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Approved target policy" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Test identities" })).toBeVisible();
+  const axe = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+    .analyze();
+  const serious = axe.violations.filter(
+    (violation) => violation.impact === "serious" || violation.impact === "critical",
+  );
+  expect(serious, JSON.stringify(serious.map((violation) => violation.id))).toEqual([]);
 });
 
 test("report pages do not emit console or page errors", async ({ page }) => {

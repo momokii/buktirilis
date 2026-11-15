@@ -278,3 +278,64 @@ def test_disposition_requires_reason(db, lab_project):
     )
     db.commit()
     assert finding.disposition == "false_positive"
+
+
+def test_revoked_requester_blocks_queued_retest(db, lab_project, settings):
+    from app.models import ProjectMember, TargetConfig  # noqa: F401
+
+    finding = _setup(db, lab_project)
+    attempt = queue_automatic_attempt(
+        db,
+        project=lab_project.project,
+        finding=finding,
+        build=lab_project.builds["2024.10.1"],
+        actor=lab_project.developer,
+        mode="demo",
+        settings=settings,
+    )
+    membership = (
+        db.query(ProjectMember)
+        .filter_by(project_id=lab_project.project.id, user_id=lab_project.developer.id)
+        .one()
+    )
+    db.delete(membership)
+    db.commit()
+    execute_attempt(db, attempt=attempt, settings=settings)
+    db.commit()
+    assert attempt.outcome == "inconclusive"
+    assert attempt.reason_code == "authorization_revoked"
+    from app.models import Observation
+
+    assert db.query(Observation).filter_by(attempt_id=attempt.id).count() == 0
+
+
+def test_narrowed_policy_blocks_queued_retest(db, lab_project, settings):
+    from app.models import TargetConfig
+
+    finding = _setup(db, lab_project)
+    attempt = queue_automatic_attempt(
+        db,
+        project=lab_project.project,
+        finding=finding,
+        build=lab_project.builds["2024.10.1"],
+        actor=lab_project.developer,
+        mode="demo",
+        settings=settings,
+    )
+    db.add(
+        TargetConfig(
+            project_id=lab_project.project.id,
+            revision=2,
+            base_url=lab_project.lab_base,
+            allowed_origins=[lab_project.lab_base],
+            path_prefixes=["/different"],
+            environment_label="staging",
+            run_limits={},
+            created_by=lab_project.admin.id,
+        )
+    )
+    db.commit()
+    execute_attempt(db, attempt=attempt, settings=settings)
+    db.commit()
+    assert attempt.outcome == "inconclusive"
+    assert attempt.reason_code == "scope_denied"

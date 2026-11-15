@@ -198,6 +198,7 @@ class CoverageResult(StrEnum):
 
 
 class InconclusiveReason(StrEnum):
+    AUTHORIZATION_REVOKED = "authorization_revoked"
     EXPIRED_CREDENTIALS = "expired_credentials"
     IDENTITY_MISMATCH = "identity_mismatch"
     MISSING_FIXTURE = "missing_fixture"
@@ -212,6 +213,9 @@ class InconclusiveReason(StrEnum):
 
 
 INCONCLUSIVE_REASON_LABELS = {
+    InconclusiveReason.AUTHORIZATION_REVOKED: (
+        "Inconclusive — the requester or target is no longer authorized"
+    ),
     InconclusiveReason.EXPIRED_CREDENTIALS: "Inconclusive — test account expired",
     InconclusiveReason.IDENTITY_MISMATCH: "Inconclusive — identity did not match the declared account",
     InconclusiveReason.MISSING_FIXTURE: "Inconclusive — required fixture missing",

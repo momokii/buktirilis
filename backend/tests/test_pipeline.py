@@ -16,7 +16,7 @@ from app.services.findings import (
 from app.services.ingest import ArtifactBundle, ingest_run
 from app.services.pipeline import execute_run
 from app.services.queue import reconcile
-from app.services.runs import create_run
+from app.services.runs import cancel_run, create_run
 from tests.helpers import approve_recipe, make_finding, make_run
 
 
@@ -119,6 +119,78 @@ def test_ingest_is_idempotent_and_missing_artifacts_are_explicit(db, lab_project
     assert empty_run.coverage_complete is False
     assert result["imported"] == 0
     assert any("No engine artifacts" in limitation for limitation in empty_run.limitations)
+
+
+def test_narrowed_policy_stops_discovery_after_known_replay(db, lab_project, settings, monkeypatch):
+    from app.models import TargetConfig
+    from app.services import releases as releases_service
+
+    baseline = _execute(
+        db,
+        _create(db, lab_project, settings, kind=RunKind.BASELINE, build_label="2024.10.1"),
+        settings,
+    )
+    finding = next(
+        row
+        for row in db.query(__import__("app.models", fromlist=["Finding"]).Finding)
+        if row.issue_class == "broken-object-authorization"
+    )
+    approve_recipe(db, lab_project.project, finding, lab_project.operator)
+    db.commit()
+    release = _create(
+        db,
+        lab_project,
+        settings,
+        kind=RunKind.RELEASE_SCAN,
+        build_label="2024.10.2",
+        baseline=baseline,
+    )
+    original = releases_service.verify_known
+
+    def narrow_during_replay(*args, **kwargs):
+        result = original(*args, **kwargs)
+        db.add(
+            TargetConfig(
+                project_id=lab_project.project.id,
+                revision=2,
+                base_url=lab_project.lab_base,
+                allowed_origins=[lab_project.lab_base],
+                path_prefixes=["/different"],
+                environment_label="staging",
+                run_limits={},
+                created_by=lab_project.admin.id,
+            )
+        )
+        db.flush()
+        return result
+
+    monkeypatch.setattr(releases_service, "verify_known", narrow_during_replay)
+    run = _execute(db, release, settings)
+    db.refresh(run)
+    assert run.status == "failed"
+    assert "Discovery stopped" in (run.failure_reason or "")
+    from app.models import RunStage
+
+    stage = db.query(RunStage).filter_by(run_id=run.id, code="discovery").one()
+    assert stage.state == "failed"
+
+
+def test_cancel_queued_run_is_terminal_without_a_worker(db, lab_project, settings):
+    run = _create(db, lab_project, settings, kind=RunKind.BASELINE, build_label="2024.10.1")
+    cancel_run(db, run=run, actor=lab_project.operator, reason="No longer needed")
+    db.commit()
+    db.refresh(run)
+    job = db.get(Job, run.job_id)
+    db.refresh(job)
+    assert run.status == "canceled"
+    assert run.completed_at is not None
+    assert job.state == "canceled"
+    assert db.query(Job).filter_by(state="queued").count() == 0
+    from app.models import RunStage
+
+    stages = {row.code: row.state for row in db.query(RunStage).filter_by(run_id=run.id)}
+    assert stages["preflight"] == "canceled"
+    assert stages["discovery"] == "canceled"
 
 
 def test_release_scan_verifies_fix_then_regresses(db, lab_project, settings):

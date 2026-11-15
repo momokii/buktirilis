@@ -35,8 +35,8 @@ from app.services.queue import finish_job, heartbeat, is_cancel_requested
 from app.services.replays import send
 from app.services.runs import (
     add_activity,
+    current_policy,
     finish_stage,
-    run_policy,
     start_stage,
 )
 from app.services.strix_adapter import (
@@ -253,7 +253,7 @@ def execute_run(db: Session, *, run: Run, job: Job, settings: Settings) -> dict[
     heartbeat(db, job=job, settings=settings)
 
     try:
-        policy = run_policy(db, build, settings)
+        policy = current_policy(db, run.project_id, settings)
     except Exception as exc:
         _fail(
             db,
@@ -407,6 +407,20 @@ def execute_run(db: Session, *, run: Run, job: Job, settings: Settings) -> dict[
 
     artifacts_dir: Path | None = None
     if discovery_allowed and not cancelled():
+        # Stage boundaries re-check authorization: a revocation during known-finding
+        # replay must stop discovery as well.
+        still_authorized, auth_reason = reauthorize(db, run)
+        if not still_authorized:
+            _fail(
+                db,
+                run=run,
+                job=job,
+                reason=f"Discovery stopped: {auth_reason}",
+                stage_code=StageCode.DISCOVERY.value,
+                error_code="authorization_revoked",
+            )
+            return {"failed": True, "reason": auth_reason}
+        policy = current_policy(db, run.project_id, settings)
         start_stage(db, run.id, StageCode.DISCOVERY.value)
         _record(db, run, "Discovery and bounded active testing started.", code="stage.discovery")
         run_dir = run_directory(artifact_root(), run.id)
@@ -443,7 +457,7 @@ def execute_run(db: Session, *, run: Run, job: Job, settings: Settings) -> dict[
                 depth=run.depth,
                 budget_usd=float(run.budget.get("engine_budget_usd", 1.0)),
                 max_turns=int(run.budget.get("engine_max_turns", 20)),
-                approved_origins=list((run.scope_snapshot or {}).get("allowed_origins", [])),
+                approved_origins=list(policy.allowed_origins),
                 profile_name=profile.name,
                 run_dir=run_dir,
                 spec_path=spec_path,

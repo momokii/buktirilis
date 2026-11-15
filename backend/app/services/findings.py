@@ -35,6 +35,7 @@ from app.domain import (
 from app.models import (
     Evidence,
     Finding,
+    ManualReview,
     Observation,
     Project,
     Recipe,
@@ -221,6 +222,30 @@ def _attempt_reason(db: Session, finding_id: uuid.UUID, build_id: uuid.UUID) -> 
             reason_code="manual_review_pending",
             reason_text="A guided submission is waiting for reviewer acceptance",
         )
+    if (
+        last is not None
+        and last.kind == "guided"
+        and last.outcome in {o.value for o in CONCLUSIVE_OUTCOMES}
+    ):
+        review = db.execute(
+            select(ManualReview)
+            .where(ManualReview.attempt_id == last.id)
+            .order_by(ManualReview.created_at.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+        if review is not None and review.decision == "changes_requested":
+            return FindingState(
+                finding_id=finding_id,
+                outcome=VerificationOutcome.AWAITING_RETEST,
+                reason_code="changes_requested",
+                reason_text=f"Reviewer requested changes: {review.reason}",
+            )
+        return FindingState(
+            finding_id=finding_id,
+            outcome=VerificationOutcome.AWAITING_RETEST,
+            reason_code="manual_review_pending",
+            reason_text="A guided submission is waiting for reviewer acceptance",
+        )
     check = db.execute(
         select(RunCheck)
         .where(
@@ -323,7 +348,12 @@ class RunFinding:
 
 
 def run_findings(db: Session, run: Run) -> list[Finding]:
-    """Findings touched by this run, plus findings with accepted evidence on its build."""
+    """Findings touched by this run, plus findings with accepted evidence by its snapshot.
+
+    A completed run is a historical record: later retests or review decisions on the same
+    build must not add rows to it. They appear in the latest-verification panel instead.
+    """
+    cutoff = run.completed_at
     touched: set[uuid.UUID] = {
         finding_id
         for finding_id in db.execute(
@@ -338,13 +368,14 @@ def run_findings(db: Session, run: Run) -> list[Finding]:
     ).scalars():
         if finding_id is not None:
             touched.add(finding_id)
-    touched.update(
-        db.execute(
-            select(Observation.finding_id).where(
-                Observation.build_id == run.build_id, Observation.accepted.is_(True)
-            )
-        ).scalars()
+    build_observations = select(Observation.finding_id).where(
+        Observation.build_id == run.build_id, Observation.accepted.is_(True)
     )
+    if cutoff is not None:
+        build_observations = build_observations.where(Observation.observed_at <= cutoff)
+    for finding_id in db.execute(build_observations).scalars():
+        if finding_id is not None:
+            touched.add(finding_id)
     if not touched:
         return []
     return list(
@@ -360,7 +391,7 @@ def build_run_view(db: Session, run: Run) -> list[RunFinding]:
     snapshot_at = run.completed_at
     results: list[RunFinding] = []
     for finding in run_findings(db, run):
-        state = state_for_build(db, finding.id, run.build_id)
+        state = state_for_build(db, finding.id, run.build_id, as_of=snapshot_at)
         checks = list(
             db.execute(
                 select(RunCheck).where(RunCheck.run_id == run.id, RunCheck.finding_id == finding.id)

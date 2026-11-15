@@ -211,6 +211,38 @@ def test_stale_observation_is_not_a_verdict(db, lab_project):
     assert state.stale is True
 
 
+def test_comparison_uses_run_snapshot_not_later_retest(db, lab_project):
+    from app.services.findings import latest_verification_panel
+
+    finding = make_finding(db, lab_project.project)
+    run_a = _run(db, lab_project, "2024.10.1", T0)
+    run_b = _run(db, lab_project, "2024.10.2", T0 + timedelta(days=7))
+    add_observation(db, finding, run_a.build_id, outcome="observed", observed_at=T0, run=run_a)
+    add_observation(
+        db,
+        finding,
+        run_b.build_id,
+        outcome="not_observed",
+        observed_at=T0 + timedelta(days=7),
+        run=run_b,
+    )
+    add_observation(
+        db,
+        finding,
+        run_b.build_id,
+        outcome="observed",
+        observed_at=T0 + timedelta(days=30),
+        source="replay",
+    )
+    rows = comparison_findings(db, run_a, run_b)
+    assert rows[0]["bucket"] == "fix_verified"
+    assert rows[0]["verification"]["outcome"] == "fix_verified"
+    panel = latest_verification_panel(
+        db, run_b, [{"id": str(finding.id), "public_id": finding.public_id, "title": finding.title}]
+    )
+    assert panel and panel[0]["outcome"] == "still_reproducible"
+
+
 def test_mode_mismatch_makes_comparison_incomparable(db, lab_project):
     run_a = _run(db, lab_project, "2024.10.1", T0, mode="live")
     run_b = _run(db, lab_project, "2024.10.2", T0 + timedelta(days=1), mode="demo")

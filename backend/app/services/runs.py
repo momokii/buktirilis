@@ -170,6 +170,21 @@ def run_policy(db: Session, build: Build, settings: Settings) -> TargetPolicy:
     )
 
 
+def current_policy(db: Session, project_id: uuid.UUID, settings: Settings) -> TargetPolicy:
+    """The latest policy revision, used whenever work is dispatched or re-authorized."""
+    config = db.execute(
+        select(TargetConfig)
+        .where(TargetConfig.project_id == project_id)
+        .order_by(TargetConfig.revision.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    if config is None:
+        raise HTTPException(status_code=409, detail="Project has no approved target policy")
+    return TargetPolicy.from_config(
+        config, allow_loopback=bool(settings.allow_loopback_lab_targets)
+    )
+
+
 def daily_run_count(db: Session, project_id: uuid.UUID) -> int:
     since = datetime.now(UTC) - timedelta(hours=24)
     return int(
@@ -725,17 +740,41 @@ def cancel_run(db: Session, *, run: Run, actor: User, reason: str = "") -> Run:
     if run.status in TERMINAL_RUN_STATES:
         raise HTTPException(status_code=409, detail=f"This run already finished as {run.status}")
     now = datetime.now(UTC)
-    run.status = RunStatus.CANCEL_REQUESTED
-    run.canceled_at = now
     job = db.get(Job, run.job_id) if run.job_id else None
-    if job is not None and job.state in ("queued", "running"):
-        job.state = "cancel_requested"
+    # A queued job has no worker to observe a cancel request. Finalize it immediately;
+    # only a claimed/running job needs the cooperative boundary check.
+    if job is None or job.state == "queued":
+        run.status = RunStatus.CANCELED
+        run.canceled_at = now
+        run.completed_at = now
+        run.snapshot_at = now
+        run.failure_reason = "Canceled before execution started."
+        if job is not None:
+            job.state = "canceled"
+            job.finished_at = now
+            job.error_code = "canceled"
+        for stage_row in db.execute(
+            select(RunStage).where(
+                RunStage.run_id == run.id,
+                RunStage.state.in_([StageState.PENDING.value, StageState.RUNNING.value]),
+            )
+        ).scalars():
+            stage_row.state = StageState.CANCELED.value
+            stage_row.finished_at = now
+            stage_row.detail = "Canceled before execution started."
+        message = f"Canceled by {actor.display_name or actor.email} before execution started."
+    else:
+        run.status = RunStatus.CANCEL_REQUESTED
+        run.canceled_at = now
+        if job.state == "running":
+            job.state = "cancel_requested"
+        message = f"Cancellation requested by {actor.display_name or actor.email}"
     db.add(
         Activity(
             run_id=run.id,
             code="run.cancel_requested",
             level="warn",
-            message=f"Cancellation requested by {actor.display_name or actor.email}",
+            message=message,
             data={"reason": reason[:300]},
         )
     )

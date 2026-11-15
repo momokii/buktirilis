@@ -17,6 +17,7 @@ from app.domain import (
     EvidenceAttribution,
     EvidenceSource,
     EvidenceStatus,
+    InconclusiveReason,
     ObservationOutcome,
     RecipeState,
     RetestMethod,
@@ -32,7 +33,9 @@ from app.models import (
     ManualReview,
     Observation,
     Project,
+    ProjectMember,
     ReadyMarker,
+    Recipe,
     RecipeRevision,
     RetestAttempt,
     TargetConfig,
@@ -82,6 +85,15 @@ def is_ready(db: Session, finding_id: uuid.UUID, build_id: uuid.UUID) -> bool:
     )
 
 
+def current_target_config(db: Session, project_id: uuid.UUID) -> TargetConfig | None:
+    return db.execute(
+        select(TargetConfig)
+        .where(TargetConfig.project_id == project_id)
+        .order_by(TargetConfig.revision.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+
+
 def queue_automatic_attempt(
     db: Session,
     *,
@@ -99,7 +111,8 @@ def queue_automatic_attempt(
         raise HTTPException(
             status_code=409, detail="Only open findings can be retested automatically"
         )
-    config = db.get(TargetConfig, build.target_config_id)
+    # The current policy, not the revision recorded at build creation, authorizes work now.
+    config = current_target_config(db, project.id)
     if config is None:
         raise HTTPException(status_code=409, detail="Build has no recorded target configuration")
     policy = TargetPolicy.from_config(
@@ -193,18 +206,61 @@ def execute_attempt(db: Session, *, attempt: RetestAttempt, settings: Settings) 
         project is not None and finding is not None and build is not None and revision is not None
     )
 
-    config = db.get(TargetConfig, build.target_config_id)
+    config = current_target_config(db, project.id)
     if config is None:
-        attempt.state = AttemptState.COMPLETED
-        attempt.outcome = VerificationOutcome.INCONCLUSIVE.value
-        attempt.reason_code = "missing_configuration"
-        attempt.reason_text = "The build target configuration is unavailable"
-        attempt.finished_at = utcnow()
-        db.flush()
-        return attempt
+        return _finish_inconclusive(
+            db,
+            attempt,
+            reason=InconclusiveReason.AUTHORIZATION_REVOKED,
+            text="The project no longer has an approved target policy.",
+        )
     policy = TargetPolicy.from_config(
         config, allow_loopback=bool(settings.allow_loopback_lab_targets)
     )
+    requester = db.get(User, attempt.requested_by) if attempt.requested_by else None
+    requester_member = (
+        db.execute(
+            select(ProjectMember.id).where(
+                ProjectMember.project_id == project.id,
+                ProjectMember.user_id == requester.id,
+            )
+        ).scalar_one_or_none()
+        if requester is not None
+        else None
+    )
+    if (
+        requester is None
+        or not requester.is_active
+        or (not requester.is_admin and requester_member is None)
+    ):
+        return _finish_inconclusive(
+            db,
+            attempt,
+            reason=InconclusiveReason.AUTHORIZATION_REVOKED,
+            text="The requester no longer has access to this project.",
+        )
+    try:
+        policy.check(build.target_url)
+    except Exception:  # policy denial becomes an inconclusive reason
+        return _finish_inconclusive(
+            db,
+            attempt,
+            reason=InconclusiveReason.SCOPE_DENIED,
+            text="The build destination is outside the current approved scope.",
+        )
+    recipe = db.get(Recipe, revision.recipe_id)
+    if (
+        finding.disposition != "open"
+        or revision.approved_at is None
+        or recipe is None
+        or recipe.state != RecipeState.APPROVED
+    ):
+        return _finish_inconclusive(
+            db,
+            attempt,
+            reason=InconclusiveReason.RECIPE_SUPERSEDED,
+            text="The finding or approved recipe revision changed before execution.",
+        )
     actor_account, owner_account = resolve_recipe_accounts(db, revision)
     if actor_account is None or owner_account is None:
         attempt.state = AttemptState.COMPLETED
@@ -284,6 +340,18 @@ def execute_attempt(db: Session, *, attempt: RetestAttempt, settings: Settings) 
                 },
             )
         )
+    db.flush()
+    return attempt
+
+
+def _finish_inconclusive(
+    db: Session, attempt: RetestAttempt, *, reason: InconclusiveReason, text: str
+) -> RetestAttempt:
+    attempt.state = AttemptState.COMPLETED
+    attempt.outcome = VerificationOutcome.INCONCLUSIVE.value
+    attempt.reason_code = reason.value
+    attempt.reason_text = text
+    attempt.finished_at = utcnow()
     db.flush()
     return attempt
 

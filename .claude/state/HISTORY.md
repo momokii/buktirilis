@@ -73,8 +73,8 @@ PDF/CSV/JSON frozen exports, release comparison, and both retest paths. Enforced
 roles, CSRF, login rate limits, encrypted test credentials, target allowlists, redirect
 re-validation, and worker lease reconciliation.
 
-Verification: 80 backend tests (real HTTP against the lab), ruff and mypy clean, web
-typecheck/build clean, 8 Playwright tests at 1440 px and 390 px including an axe-core scan,
+Verification: 86 backend tests (real HTTP against the lab), ruff and mypy clean, web
+typecheck/build clean, 12 Playwright tests at 1440 px and 390 px including an axe-core scan,
 fresh-database migrate + seed producing 3 runs and 5 exports, PDF 6 pages with limitations,
 CSV/JSON agreeing and free of credential values, and compose config valid for base + demo
 profiles. Remaining: live Strix execution and sandbox isolation were not observed; the
@@ -87,3 +87,11 @@ the Tailscale address `100.124.184.116:8088`. Verified health, login, report dat
 rejection, PDF/JSON export downloads, security headers, disabled API docs, worker retest
 execution, restart persistence, and the full 11-test Playwright suite against the deployed
 URL (including axe and 390 px). API, database, and lab are not published externally.
+
+## Post-review hardening (2026-11-15)
+Fixed review findings: queued-run cancellation now terminates without waiting for a worker;
+queued retests re-check current target policy, requester access, recipe approval, and finding
+disposition; comparisons and new exports use the selected run snapshot while later evidence
+is labelled separately; completed runs no longer grow finding membership from later evidence;
+cross-mode comparisons return no buckets; guided changes-requested states report the reason.
+Backend tests 85, browser tests 12.

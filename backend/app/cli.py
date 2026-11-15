@@ -97,6 +97,32 @@ def cmd_seed_demo(args) -> int:
     return 0
 
 
+def cmd_reset_password(args) -> int:
+    password = _read_password(args)
+    email = args.email.strip().lower()
+    with session_scope() as db:
+        user = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
+        if user is None:
+            return _fail(f"no account exists for {email}")
+        user.password_hash = hash_password(password)
+        from app.models import UserSession
+
+        revoked = (
+            db.query(UserSession)
+            .filter(UserSession.user_id == user.id, UserSession.revoked_at.is_(None))
+            .update(
+                {
+                    UserSession.revoked_at: __import__("datetime").datetime.now(
+                        __import__("datetime").UTC
+                    )
+                }
+            )
+        )
+        db.flush()
+    print(f"password reset for {email}; {revoked} active session(s) revoked")
+    return 0
+
+
 def cmd_profiles(args) -> int:
     with session_scope() as db:
         sync_profiles(db)
@@ -148,6 +174,15 @@ def main(argv: list[str] | None = None) -> int:
         help="read the password from this environment variable instead of stdin",
     )
     bootstrap.set_defaults(func=cmd_bootstrap_admin)
+
+    reset = subs.add_parser("reset-password", help="reset an account password (break-glass)")
+    reset.add_argument("--email", required=True)
+    reset.add_argument(
+        "--password-env",
+        default="",
+        help="read the password from this environment variable instead of stdin",
+    )
+    reset.set_defaults(func=cmd_reset_password)
 
     seed = subs.add_parser("seed-demo", help="create the synthetic demo dataset")
     seed.add_argument("--admin-email", default=None)

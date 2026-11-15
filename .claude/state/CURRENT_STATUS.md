@@ -10,12 +10,13 @@ execution remains unobserved pending worker provisioning.
 - [x] Evidence provenance/redaction, automatic replay recipes, guided retests, review acceptance
 - [x] Release Scan planning, known-finding replay, discovery, comparison buckets
 - [x] Frozen PDF/CSV/JSON exports with redaction and historical stability
-- [x] 81 backend tests, 8 Playwright tests, axe scan, 1440 px and 390 px screenshots
+- [x] 81 backend tests, 11 Playwright tests, axe scan, 1440 px and 390 px screenshots
 - [x] Fresh-database migrate + seed: 4 users, 1 project, 3 runs, 4 findings, 5 exports
 - [x] Documentation: README, deployment, Strix contract, decisions, progress
 
 ## In Progress
-- [ ] None. Next step is the live pilot provisioning described in `docs/progress.md`.
+- [x] Demo pilot deployed via Compose on the Tailscale interface (http://100.124.184.116:8088)
+- [ ] Live Strix pilot provisioning remains the next milestone.
 
 ## Blocked
 - Live Strix execution was not observed: no model credentials and no pinned engine image in

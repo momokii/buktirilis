@@ -5,8 +5,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 interface Credentials {
+  admin: { email: string; password: string };
   operator: { email: string; password: string };
   developer: { email: string; password: string };
+  viewer: { email: string; password: string };
 }
 
 function credentials(): Credentials {
@@ -19,13 +21,21 @@ function credentials(): Credentials {
     const [role, email, password] = line.trim().split(/\s+/);
     if (role && email && password) parsed[role] = { email, password };
   }
-  if (!parsed.operator || !parsed.developer) {
+  if (!parsed.admin || !parsed.operator || !parsed.developer || !parsed.viewer) {
     throw new Error(`Demo credentials are incomplete in ${file}`);
   }
-  return { operator: parsed.operator, developer: parsed.developer };
+  return {
+    admin: parsed.admin,
+    operator: parsed.operator,
+    developer: parsed.developer,
+    viewer: parsed.viewer,
+  };
 }
 
-async function signIn(page: Page, role: "operator" | "developer" = "operator") {
+async function signIn(
+  page: Page,
+  role: "admin" | "operator" | "developer" | "viewer" = "operator",
+) {
   const creds = credentials()[role];
   await page.goto("/login");
   await page.getByLabel("Email").fill(creds.email);
@@ -205,6 +215,41 @@ test("no serious accessibility violations on report and finding pages", async ({
     seriousDetail,
     JSON.stringify(seriousDetail.map((v) => ({ id: v.id, nodes: v.nodes.length }))),
   ).toEqual([]);
+});
+
+test("admin and project settings screens expose the operational state", async ({ page }) => {
+  await signIn(page, "admin");
+  await page.getByRole("link", { name: "Admin", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Administration" })).toBeVisible();
+  await expect(page.getByText("Demo Operator").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Audit events" })).toBeVisible();
+  await page.getByRole("link", { name: "Settings", exact: true }).first().click();
+  await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Worker" })).toBeVisible();
+  await expect(page.getByText(/Active runs|No worker heartbeat|Queued/).first()).toBeVisible();
+
+  await page.getByRole("link", { name: "Projects", exact: true }).click();
+  await page.getByRole("link", { name: /Atlas Billing/ }).first().click();
+  await page
+    .getByRole("navigation", { name: "Project sections" })
+    .getByRole("link", { name: "Settings", exact: true })
+    .click();
+  await expect(page.getByRole("heading", { name: "Project settings" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Approved target policy" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Test identities" })).toBeVisible();
+});
+
+test("report pages do not emit console or page errors", async ({ page }) => {
+  await signIn(page);
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(`console: ${message.text()}`);
+  });
+  await openLatestReport(page);
+  await openFirstFinding(page);
+  await page.getByRole("tab", { name: "Coverage & methodology" }).count();
+  expect(errors, errors.join("\n")).toEqual([]);
 });
 
 test("login restores the intended deep link", async ({ page }) => {

@@ -8,15 +8,17 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   reporter: [["list"]],
-  webServer: {
-    command: "npm run dev -- --host 127.0.0.1 --port 5180 --strictPort",
-    url: "http://127.0.0.1:5180",
-    reuseExistingServer: true,
-    timeout: 60_000,
-    env: {
-      VITE_API_TARGET: process.env.VITE_API_TARGET ?? "http://127.0.0.1:8000",
-    },
-  },
+  webServer: process.env.E2E_EXTERNAL
+    ? undefined
+    : {
+        command: "npm run dev -- --host 127.0.0.1 --port 5180 --strictPort",
+        url: "http://127.0.0.1:5180",
+        reuseExistingServer: true,
+        timeout: 60_000,
+        env: {
+          VITE_API_TARGET: process.env.VITE_API_TARGET ?? "http://127.0.0.1:8000",
+        },
+      },
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://127.0.0.1:5180",
     trace: "retain-on-failure",

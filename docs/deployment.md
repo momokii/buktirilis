@@ -29,6 +29,12 @@ The CLI reads the password from stdin when no TTY is attached; change it after f
 Alternatively use `--password-env VAR` with a one-time environment value. Web-based first-admin
 creation is allowed only in `APP_ENV=development`.
 
+Break-glass password reset (also revokes existing sessions):
+
+```bash
+docker compose exec -T api python -m app.cli reset-password --email admin@example.internal <<< 'new-long-password'
+```
+
 Services:
 
 | Service | Port | Notes |
@@ -51,6 +57,37 @@ docker compose exec api python -m app.cli check
 ```
 
 The lab binds loopback only. Do not expose it to a network; it contains deliberate flaws.
+
+### Tailscale-only access (verified deployment)
+
+Bind the web service to the tailnet address instead of a LAN/public interface:
+
+```dotenv
+APP_ENV=staging
+WEB_BIND=100.x.y.z          # the node's Tailscale IPv4 address
+WEB_PORT=8088
+PUBLIC_ORIGIN=http://100.x.y.z:8088
+COOKIE_SECURE=false         # plain HTTP inside the WireGuard tailnet
+DEMO_SEED_ENABLED=true      # demo pilot only
+```
+
+```bash
+docker compose --profile demo up -d --build
+docker compose --profile demo exec -T api python -m app.cli seed-demo \
+  --credentials-file /srv/var/demo-credentials.txt
+docker compose cp api:/srv/var/demo-credentials.txt var/demo-credentials.txt
+chmod 600 var/demo-credentials.txt
+curl -fsS http://100.x.y.z:8088/api/health
+```
+
+Only the `web` container publishes a port, and only on the Tailscale address. API, database,
+and lab stay internal/loopback. `make deploy` automates the same sequence.
+
+Tailscale already encrypts traffic in transit, but browsers will treat the origin as plain
+HTTP, so `COOKIE_SECURE=false` is required; restrict the bind to the tailnet and keep the ACL
+limited to the pilot group. If the Tailscale CLI is available, prefer
+`tailscale serve` (or a trusted TLS reverse proxy) and then set `COOKIE_SECURE=true` and an
+`https://` `PUBLIC_ORIGIN`.
 
 ### TLS / reverse proxy
 

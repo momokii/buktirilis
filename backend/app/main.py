@@ -21,9 +21,9 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="BuktiRilis API",
         version="0.1.0",
-        docs_url="/api/docs" if not settings.is_production else None,
+        docs_url="/api/docs" if settings.is_development else None,
         redoc_url=None,
-        openapi_url="/api/openapi.json" if not settings.is_production else None,
+        openapi_url="/api/openapi.json" if settings.is_development else None,
     )
 
     origins = [settings.public_origin]

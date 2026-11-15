@@ -17,7 +17,7 @@ PUBLIC_ORIGIN ?= http://127.0.0.1:5173
 
 export
 
-.PHONY: help install db lab api worker web dev test lint typecheck check demo seed migrate compose-config clean
+.PHONY: help install db lab api worker web dev test lint typecheck check demo seed migrate compose-config clean deploy deploy-status
 
 help:
 	@echo "BuktiRilis targets"
@@ -31,6 +31,8 @@ help:
 	@echo "  make migrate     apply database migrations"
 	@echo "  make seed        create the demo project and runs (needs lab + db)"
 	@echo "  make demo        migrate, seed, and print the demo credentials path"
+	@echo "  make deploy      build/start the Compose stack, seed the demo, copy credentials"
+	@echo "  make deploy-status  show Compose service state and health"
 	@echo "  make test        backend test suite"
 	@echo "  make lint        ruff lint + format check"
 	@echo "  make typecheck   mypy"
@@ -97,6 +99,25 @@ check: lint typecheck test
 
 compose-config:
 	docker compose config >/dev/null && echo "compose config valid"
+
+# Single-host deployment. Reads .env (copy .env.example and fill the values).
+# Binds the web service to WEB_BIND:WEB_PORT (set it to a Tailscale IP, not 0.0.0.0).
+deploy:
+	docker compose --profile demo up -d --build
+	docker compose --profile demo exec -T api python -m app.cli seed-demo --credentials-file /srv/var/demo-credentials.txt
+	@if docker compose --profile demo exec -T api test -f /srv/var/demo-credentials.txt; then \
+		docker compose cp api:/srv/var/demo-credentials.txt $(CURDIR)/var/demo-credentials.txt; \
+		chmod 600 $(CURDIR)/var/demo-credentials.txt; \
+		echo "Credentials: $(CURDIR)/var/demo-credentials.txt (mode 600, gitignored)"; \
+	else \
+		echo "Already seeded; credentials were not reissued. Use var/demo-credentials.txt"; \
+		echo "or reset an account with: docker compose exec api python -m app.cli reset-password --email <email>"; \
+	fi
+	@echo "Deployed. Open http://$${WEB_BIND:-127.0.0.1}:$${WEB_PORT:-8080}"
+
+deploy-status:
+	docker compose --profile demo ps
+	@curl -fsS "http://$${WEB_BIND:-127.0.0.1}:$${WEB_PORT:-8080}/api/health" && echo
 
 clean:
 	rm -rf web/dist backend/.pytest_cache backend/.ruff_cache backend/.mypy_cache

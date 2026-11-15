@@ -5,8 +5,9 @@
   projects, builds, runs, evidence, retests, release comparison, and frozen exports.
 - Stack: React 19 + TypeScript + Vite; Python 3.12 + FastAPI + SQLAlchemy 2 + Alembic;
   PostgreSQL 16; Docker Compose; synthetic FastAPI lab; Playwright + axe-core.
-- Phase: First internal release implemented. Demo path verified end to end; live Strix
-  execution wired but unobserved (no model credentials / pinned image). See `docs/progress.md`.
+- Phase: First internal release implemented and deployed as a demo pilot on the Tailscale
+  address 100.124.184.116:8088 (Compose, APP_ENV=staging). Live Strix execution wired but
+  unobserved. See `docs/progress.md`.
 
 ## Always-Loaded Context
 @.claude/AGENT_RULES.md
@@ -44,6 +45,8 @@ Verified in this environment (see `docs/progress.md` for results):
 | Type check | `make typecheck` |
 | Web build | `cd web && npm run typecheck && npm run build` |
 | Browser E2E | `cd web && npx playwright test` (requires lab/API/worker + seeded demo) |
+| Deploy (single host) | `make deploy` (reads `.env`; binds web to `WEB_BIND:WEB_PORT`) |
+| Deployed status | `make deploy-status` |
 | Install browser | `cd web && npx playwright install chromium` |
 
 ## On-Demand References

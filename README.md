@@ -97,6 +97,18 @@ In a second terminal, create the reproducible demo dataset (the lab must be runn
 make demo           # migrate + seed; prints the credentials file path
 ```
 
+For a single-host deployment (Docker Compose, web bound to a private interface):
+
+```bash
+# In .env set WEB_BIND=<tailscale-ip>, WEB_PORT=8088, PUBLIC_ORIGIN=http://<tailscale-ip>:8088,
+# APP_ENV=staging, COOKIE_SECURE=false (plain HTTP inside the tailnet) and DEMO_SEED_ENABLED=true.
+make deploy          # build + start, seed demo, copy credentials to var/demo-credentials.txt
+make deploy-status
+```
+
+The deployed demo is reachable only on the bound interface. Use Tailscale Serve or a TLS
+reverse proxy in front of it to enable `COOKIE_SECURE=true` for non-Tailscale access.
+
 Then open <http://127.0.0.1:5173>, sign in with the `operator` account from
 `var/demo-credentials.txt` (generated locally, mode 600, gitignored), and open **Atlas
 Billing → Runs → Open report**.
@@ -206,7 +218,7 @@ Verified in this environment (see [docs/progress.md](docs/progress.md) for exact
   retest/review semantics, verdict derivation, comparison buckets, pipeline, cancellation,
   revoked access, worker lease reconciliation, exports, API/CSRF/isolation, and the Strix
   subprocess contract.
-- Frontend: TypeScript build and **9 Playwright tests** at 1440 px and 390 px, including
+- Frontend: TypeScript build and **11 Playwright tests** at 1440 px and 390 px, including
   keyboard tab navigation, both retest paths, frozen export download, comparison, and an
   axe-core scan with no serious/critical violations.
 - PDF export: 6 pages for the demo release-scan snapshot; CSV and JSON parse and agree.
@@ -227,6 +239,7 @@ Verified in this environment (see [docs/progress.md](docs/progress.md) for exact
 | `docs/` | Contract, deployment, decisions, progress, screenshots |
 | `compose.yaml` | Single-host deployment (db, api, worker, web, demo lab profile) |
 | `scripts/verify-isolation.sh` | Worker-side allowed/denied/redirect probe for the live boundary |
+| `.env` (gitignored) | Deployment secret, database password, bind interface, and mode |
 
 ## Known limits
 

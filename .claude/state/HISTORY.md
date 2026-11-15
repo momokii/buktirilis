@@ -79,3 +79,11 @@ fresh-database migrate + seed producing 3 runs and 5 exports, PDF 6 pages with l
 CSV/JSON agreeing and free of credential values, and compose config valid for base + demo
 profiles. Remaining: live Strix execution and sandbox isolation were not observed; the
 adapter is contract-tested with a fake CLI and live mode is disabled by default.
+
+## Demo pilot deployment (2026-11-15)
+Built and started the single-host Compose stack (db, api, worker, web, demo lab) with
+`APP_ENV=staging`; seeded the synthetic demonstration and bound the web container only to
+the Tailscale address `100.124.184.116:8088`. Verified health, login, report data, CSRF
+rejection, PDF/JSON export downloads, security headers, disabled API docs, worker retest
+execution, restart persistence, and the full 11-test Playwright suite against the deployed
+URL (including axe and 390 px). API, database, and lab are not published externally.

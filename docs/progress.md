@@ -46,7 +46,7 @@ container on `127.0.0.1:55432`, lab on `127.0.0.1:8099`.
 | Backend tests | `cd backend && .venv/bin/python -m pytest` | **81 passed** |
 | Web types | `cd web && npm run typecheck` | **Passed** |
 | Web build | `cd web && npm run build` | **Passed** (production bundle) |
-| Browser E2E | `cd web && npx playwright test` | **9 passed** (1440 + 390) |
+| Browser E2E | `cd web && npx playwright test` | **11 passed** (deployed tailnet URL, 1440 + 390) |
 | Accessibility | axe-core via Playwright, WCAG 2 A/AA + 2.1/2.2 AA | **No serious/critical violations** |
 | Migrations | `alembic upgrade head && alembic check` | **No pending model diff** |
 | Fresh seed | new DB → `alembic upgrade head` → `python -m app.cli seed-demo` | **Passed**; 4 users, 1 project, 3 runs, 4 findings, 5 exports |
@@ -54,6 +54,9 @@ container on `127.0.0.1:55432`, lab on `127.0.0.1:8099`.
 | CSV/JSON | parsed seeded exports | findings/coverage agree; no credential values |
 | Compose syntax | `docker compose config` (base + demo profile) | **Valid** |
 | Isolation probe script | `bash -n scripts/verify-isolation.sh` | **Syntax passed**; execution requires the provisioned worker |
+| Compose deployment | `make deploy` on this host | **Running** on `http://100.124.184.116:8088`; api/db/lab healthy, web bound to the tailnet address only |
+| Deployed browser E2E | `E2E_EXTERNAL=1 E2E_BASE_URL=http://100.124.184.116:8088 ... npx playwright test` | **11 passed** |
+| Restart persistence | `docker compose restart api worker web` | Login, 3 runs, and exports survived |
 
 Evidence screenshots: `docs/screenshots/` (report overview, filtered findings, finding
 detail, coverage, comparison, 390 px report/findings/finding).
@@ -92,6 +95,16 @@ detail, coverage, comparison, 390 px report/findings/finding).
   `v1.7.1` sample was available, so only its absence handling is verified.
 - **DNS pinning**: resolution is checked, but the connection is not pinned; require an
   enforcing gateway for rebinding-sensitive targets.
+
+## Current deployment (demo pilot)
+
+- URL: `http://100.124.184.116:8088` (Tailscale interface only; not LAN/public)
+- Mode: `APP_ENV=staging`, demo records, web bootstrap disabled, API docs disabled,
+  live execution disabled. `COOKIE_SECURE=false` because the tailnet origin is plain HTTP;
+  path is WireGuard-encrypted. Prefer `tailscale serve` + TLS to enable Secure cookies.
+- Credentials: `var/demo-credentials.txt` (mode 600, gitignored); rotate the admin password
+  after signing in.
+- API, database, and lab are not published; lab is loopback-only.
 
 ## Next action
 

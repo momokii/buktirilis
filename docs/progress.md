@@ -43,7 +43,7 @@ container on `127.0.0.1:55432`, lab on `127.0.0.1:8099`.
 | Backend lint | `cd backend && .venv/bin/ruff check app tests` | **Passed** |
 | Backend format | `cd backend && .venv/bin/ruff format --check app tests` | **Passed** |
 | Backend types | `cd backend && .venv/bin/mypy app` | **Passed** (38 files) |
-| Backend tests | `cd backend && .venv/bin/python -m pytest` | **97 passed** |
+| Backend tests | `cd backend && .venv/bin/python -m pytest` | **100 passed** |
 | Web types | `cd web && npm run typecheck` | **Passed** |
 | Web build | `cd web && npm run build` | **Passed** (production bundle) |
 | Browser E2E | `cd web && npx playwright test` | **14 passed** (deployed tailnet URL, 1440 + 390) |
@@ -137,8 +137,16 @@ Findings fixed and covered by tests:
 19. **Pre-migration evidence backfill was misleading.** A corrective migration stamps
     synthetic decisions at migration time and labels them; pre-migration comparisons fall
     back to current state and are documented as a limitation.
+20. **Raw evidence had no retention policy.** `EVIDENCE_RETENTION_DAYS` and the
+    `prune-evidence` command remove old raw payloads/attachments while retaining the
+    evidence record, verdicts, and frozen exports; pruned rows are visibly marked.
+21. **Guided steps could not be corrected by a reviewer.** Append-only
+    `guided_step_revisions` let operators revise steps; the finding's original steps and
+    prior revisions remain intact, and submissions record the revision followed.
+22. **Deployment portability was undocumented.** Added `scripts/deploy.sh`,
+    `docs/deploying-elsewhere.md`, retention operations, and a parity checklist.
 
-Backend tests increased from 81 to **97**; browser tests from 11 to **14**.
+Backend tests increased from 81 to **100**; browser tests from 11 to **14**.
 
 ## Blocked / not verified
 
@@ -157,15 +165,19 @@ Backend tests increased from 81 to **97**; browser tests from 11 to **14**.
 - **Pre-migration findings have no historical evidence-review timeline.** Existing findings
   backfilled before the evidence-decisions table fall back to current status before the
   migration timestamp; this is recorded in the migration and ADR-002a.
-- **Evidence retention is not configurable yet.** Persistence is bounded by the artifact volume
-  and access checks, but no age/count retention policy is enforced.
-- **Guided-step editing is reviewer-workflow limited.** Reviewers can accept, request changes,
-  and document evidence, but cannot rewrite guided steps in-app.
+- **Post-probe reduced scope is a resubmission path.** Blocked prerequisites are shown in the
+  coverage view and the run fails closed; the operator must submit a reduced-scope run rather
+  than approve in place.
+- **Baseline fixture probes cover all approved project recipes**, which can block a baseline
+  over a fixture unrelated to the selected scenarios.
+- **Remote CI is unverified** until the workflow is pushed and run.
 - **Guided recipe editing by a reviewer** is not a separate form; reviewers accept/request
   changes and can document evidence, but they cannot rewrite guided steps. This remains a
   product-scope gap beyond the current acceptance paths.
 - **Container rebuild reproducibility** is traded for clean image scans because runtime images
   apply distribution security upgrades; rebuild and rescan per release.
+- **DNS is checked but connections are not pinned**; require an enforcing gateway for
+  rebinding-sensitive targets.
 - **Live authenticated exploration** remains disabled; the worker prerequisite probe verifies
   identities without sending them to the model.
 
@@ -187,9 +199,9 @@ Backend tests increased from 81 to **97**; browser tests from 11 to **14**.
   pinned CI workflow added); CI execution remains unverified until a push.
 - TASK-003 live Strix pilot: BLOCKED on external worker/model/target prerequisites.
 - Product/demo release: complete for the documented acceptance paths; no known code-side
-  blocker for the demo. Two product-scope gaps remain: guided-step editing by a reviewer and
-  configurable evidence retention. CI is unverified remotely; live Strix/isolation remain
-  externally blocked.
+  blocker for the demo. CI is unverified remotely; live Strix/isolation remain externally
+  blocked. The post-probe reduced-scope flow is fail-closed with a resubmission path rather
+  than an in-place approval.
 
 ## Next action
 

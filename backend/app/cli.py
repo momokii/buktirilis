@@ -123,6 +123,23 @@ def cmd_reset_password(args) -> int:
     return 0
 
 
+def cmd_prune_evidence(args) -> int:
+    from app.services.retention import prune_evidence
+
+    settings = get_settings()
+    days = args.days if args.days is not None else settings.evidence_retention_days
+    if days < 1:
+        return _fail("retention days must be at least 1 (set --days or EVIDENCE_RETENTION_DAYS)")
+    with session_scope() as db:
+        result = prune_evidence(db, days=days, dry_run=args.dry_run)
+    print(
+        f"retention {days}d: candidates={result['candidates']} "
+        f"pruned={result['pruned']} artifacts={result['artifacts_removed']} "
+        f"dry_run={result['dry_run']} cutoff={result['cutoff']}"
+    )
+    return 0
+
+
 def cmd_profiles(args) -> int:
     with session_scope() as db:
         sync_profiles(db)
@@ -188,6 +205,13 @@ def main(argv: list[str] | None = None) -> int:
     seed.add_argument("--admin-email", default=None)
     seed.add_argument("--credentials-file", default=None)
     seed.set_defaults(func=cmd_seed_demo)
+
+    prune = subs.add_parser(
+        "prune-evidence", help="remove raw evidence older than the retention window"
+    )
+    prune.add_argument("--days", type=int, default=None)
+    prune.add_argument("--dry-run", action="store_true")
+    prune.set_defaults(func=cmd_prune_evidence)
 
     profiles = subs.add_parser("sync-profiles", help="synchronise the profile registry")
     profiles.set_defaults(func=cmd_profiles)

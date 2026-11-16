@@ -30,6 +30,7 @@ from app.models import (
     Evidence,
     EvidenceDecision,
     Finding,
+    GuidedStepRevision,
     Job,
     ManualReview,
     Observation,
@@ -390,6 +391,15 @@ def submit_guided(
         artifact = db.get(Artifact, evidence_artifact_id)
         if artifact is None or artifact.project_id != project.id:
             raise HTTPException(status_code=404, detail="Attachment not found in this project")
+    if steps_revision > 0:
+        revision = db.execute(
+            select(GuidedStepRevision).where(
+                GuidedStepRevision.finding_id == finding.id,
+                GuidedStepRevision.revision == steps_revision,
+            )
+        ).scalar_one_or_none()
+        if revision is None:
+            raise HTTPException(status_code=422, detail="Unknown guided steps revision")
     attempt = RetestAttempt(
         project_id=project.id,
         finding_id=finding.id,
@@ -652,6 +662,7 @@ def evidence_row(evidence: Evidence) -> dict[str, Any]:
         "endpoint": evidence.endpoint,
         "artifact_id": str(evidence.artifact_id) if evidence.artifact_id else None,
         "created_at": _iso(evidence.created_at),
+        "pruned_at": _iso(evidence.pruned_at),
         "payload": evidence.payload,
         "highlight": evidence.highlight,
     }

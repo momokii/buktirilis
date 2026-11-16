@@ -214,7 +214,22 @@ See [docs/strix-contract.md](strix-contract.md) for the pinned contract and arti
   BuktiRilis's own constrained replays. A live credential-injection path needs its own
   threat review, short-lived tokens, and artifact sanitization before it can be enabled.
 
-## 5. Operational checks
+## 5. Evidence retention
+
+`EVIDENCE_RETENTION_DAYS` (default `0`, unlimited) is the documented window. To prune raw
+captures older than 90 days:
+
+```bash
+docker compose exec -T api python -m app.cli prune-evidence --days 90 --dry-run
+docker compose exec -T api python -m app.cli prune-evidence --days 90
+```
+
+The evidence row, summary, finding, accepted observations/verdicts, and frozen export bytes
+remain. Raw payloads/attachments and their artifact files are removed and the row is marked
+pruned; it is never presented as proof. Schedule the command with the host timer after
+reviewing the policy.
+
+## 6. Operational checks
 
 ```bash
 curl -fsS http://127.0.0.1:8080/api/health

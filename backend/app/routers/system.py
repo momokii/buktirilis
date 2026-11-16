@@ -39,6 +39,7 @@ def meta(principal: Principal = Depends(get_principal)) -> dict:
         "profiles": [profile_as_json(profile) for profile in list_profiles()],
         "depths": ["quick", "standard"],
         "export_formats": ["pdf", "csv", "json"],
+        "evidence_retention_days": settings.evidence_retention_days,
         "notice": "This installation is not a compliance certification product.",
     }
 

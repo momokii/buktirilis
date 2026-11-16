@@ -35,6 +35,7 @@ help:
 	@echo "  make deploy-status  show Compose service state and health"
 	@echo "  make security     audits + static analysis + secret scan"
 	@echo "  make image-scan   Trivy HIGH/CRITICAL scan of built images"
+	@echo "  make prune-evidence DAYS=90  prune raw evidence older than N days"
 	@echo "  make test        backend test suite"
 	@echo "  make lint        ruff lint + format check"
 	@echo "  make typecheck   mypy"
@@ -98,6 +99,9 @@ typecheck:
 
 check: lint typecheck test
 	cd web && npm run typecheck && npm run build
+
+prune-evidence:
+	cd $(BACKEND) && .venv/bin/python -m app.cli prune-evidence --days $(DAYS)
 
 audit-python:
 	cd $(BACKEND) && .venv/bin/pip-audit

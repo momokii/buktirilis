@@ -42,6 +42,7 @@ interface GuidedPackage {
   capture_instructions: string[];
   missing_prerequisites: string[];
   latest_observation: { outcome: string; source: string; observed_at: string } | null;
+  steps_revision: number;
   can_submit: boolean;
   copyable_details: Record<string, unknown>;
 }
@@ -512,6 +513,7 @@ export function FindingPage() {
           findingId={data.id}
           buildId={selectedBuild || data.build?.id || ""}
           canSubmit={data.capabilities.can_retest}
+          canEdit={data.capabilities.can_operate}
           onSubmitted={() => finding.refresh()}
         />
       ) : null}
@@ -579,13 +581,19 @@ function EvidenceCard({ item }: { item: EvidenceItem }) {
         </div>
       </div>
       <div className="evidence-body">
+        {item.pruned_at ? (
+          <Notice tone="warn" title="Raw capture pruned">
+            The retention policy removed this capture on {new Date(item.pruned_at).toLocaleDateString()}.
+            The evidence record and verdict history are retained; the raw bytes are no longer available.
+          </Notice>
+        ) : null}
         {item.endpoint ? (
           <div className="exchange">
             <span className="exchange-label">Endpoint</span>
             <Mono wrap>{item.endpoint}</Mono>
           </div>
         ) : null}
-        {item.highlight.length > 0 ? (
+        {!item.pruned_at && item.highlight.length > 0 ? (
           <div className="highlight">
             <span className="exchange-label">What proves the outcome</span>
             {item.highlight.map((line) => (
@@ -593,7 +601,7 @@ function EvidenceCard({ item }: { item: EvidenceItem }) {
             ))}
           </div>
         ) : null}
-        {body || request.url ? (
+        {!item.pruned_at && (body || request.url) ? (
           <div className="exchange">
             <span className="exchange-label">Captured exchange</span>
             <pre className="code" tabIndex={0} role="region" aria-label="Scrollable code excerpt">
@@ -757,12 +765,14 @@ function GuidedSection({
   findingId,
   buildId,
   canSubmit,
+  canEdit,
   onSubmitted,
 }: {
   projectId: string;
   findingId: string;
   buildId: string;
   canSubmit: boolean;
+  canEdit: boolean;
   onSubmitted: () => void;
 }) {
   const guided = useApi<GuidedPackage>(
@@ -775,6 +785,9 @@ function GuidedSection({
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [stepsText, setStepsText] = useState("");
+  const [editNote, setEditNote] = useState("");
   const { notify } = useToast();
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -802,7 +815,7 @@ function GuidedSection({
           notes,
           evidence_link: link,
           artifact_id: artifactId,
-          steps_revision: 1,
+          steps_revision: data.steps_revision,
         }),
       });
       notify("success", "Submitted for reviewer acceptance. The build verdict is unchanged until accepted.");
@@ -846,6 +859,24 @@ function GuidedSection({
         <Notice tone="info" title="Why automation is unavailable">
           {data.automation_limit}
         </Notice>
+        <div className="row" style={{ marginTop: "0.5rem" }}>
+          <span className="badge badge-neutral">
+            Steps revision r{data.steps_revision}
+            {data.steps_revision === 0 ? " (original finding steps)" : ""}
+          </span>
+          {canEdit ? (
+            <Button
+              size="sm"
+              onClick={() => {
+                setStepsText(data.steps.join("\n"));
+                setEditNote("");
+                setEditOpen(true);
+              }}
+            >
+              Revise guided steps
+            </Button>
+          ) : null}
+        </div>
         <div className="grid-2" style={{ marginTop: "0.7rem" }}>
           <div>
             <h3>Required identities</h3>
@@ -906,6 +937,60 @@ function GuidedSection({
             </ul>
           </Notice>
         ) : null}
+
+        <Dialog
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          title="Revise guided steps"
+          description="Creates a new numbered revision. The original finding steps and prior revisions stay intact."
+          footer={
+            <>
+              <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+              <Button
+                variant="primary"
+                busy={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await api(`/api/projects/${projectId}/findings/${findingId}/guided-steps`, {
+                      method: "POST",
+                      body: JSON.stringify({
+                        steps: stepsText.split("\n").map((step) => step.trim()).filter(Boolean),
+                        note: editNote,
+                      }),
+                    });
+                    notify("success", "Guided steps revision saved.");
+                    setEditOpen(false);
+                    guided.refresh();
+                    onSubmitted();
+                  } catch (caught) {
+                    notify("error", errorMessage(caught));
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                Save revision
+              </Button>
+            </>
+          }
+        >
+          <Field label="Ordered steps" htmlFor="guided-steps-edit" hint="One step per line.">
+            <textarea
+              id="guided-steps-edit"
+              className="input"
+              value={stepsText}
+              onChange={(event) => setStepsText(event.target.value)}
+            />
+          </Field>
+          <Field label="Reason for the revision" htmlFor="guided-steps-note">
+            <TextInput
+              id="guided-steps-note"
+              value={editNote}
+              onChange={(event) => setEditNote(event.target.value)}
+            />
+          </Field>
+        </Dialog>
 
         {canSubmit ? (
           <form

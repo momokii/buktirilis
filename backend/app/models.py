@@ -481,6 +481,7 @@ class Evidence(Base, TimestampMixin):
     actor_label: Mapped[str] = mapped_column(String(120), default="", nullable=False)
     method: Mapped[str] = mapped_column(String(10), default="", nullable=False)
     endpoint: Mapped[str] = mapped_column(String(400), default="", nullable=False)
+    pruned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
 
 
@@ -497,6 +498,29 @@ class Artifact(Base, TimestampMixin):
     size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
     sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+
+
+class GuidedStepRevision(Base):
+    """Versioned guided instructions; the finding's original steps stay untouched."""
+
+    __tablename__ = "guided_step_revisions"
+    __table_args__ = (UniqueConstraint("finding_id", "revision", name="uq_guided_step_rev"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    finding_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("findings.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    steps: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
+    note: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    actor_label: Mapped[str] = mapped_column(String(200), default="", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
 
 
 class Recipe(Base, TimestampMixin):
@@ -656,6 +680,7 @@ __all__ = [
     "EvidenceDecision",
     "ExportSnapshot",
     "Finding",
+    "GuidedStepRevision",
     "Job",
     "LoginAttempt",
     "ManualReview",

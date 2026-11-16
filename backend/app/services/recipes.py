@@ -14,6 +14,7 @@ from app.domain import RecipeState, RetestMethod
 from app.models import (
     Build,
     Finding,
+    GuidedStepRevision,
     Project,
     Recipe,
     RecipeRevision,
@@ -269,6 +270,56 @@ GUIDED_AUTOMATION_LIMITS = {
 }
 
 
+def latest_guided_steps(db: Session, finding_id: uuid.UUID) -> GuidedStepRevision | None:
+    return db.execute(
+        select(GuidedStepRevision)
+        .where(GuidedStepRevision.finding_id == finding_id)
+        .order_by(GuidedStepRevision.revision.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+
+
+def create_guided_step_revision(
+    db: Session,
+    *,
+    project: Project,
+    finding: Finding,
+    steps: list[str],
+    note: str,
+    actor: User,
+) -> GuidedStepRevision:
+    cleaned = [str(step).strip() for step in steps if str(step).strip()]
+    if not cleaned:
+        raise HTTPException(status_code=422, detail="At least one guided step is required")
+    if len(cleaned) > 30:
+        raise HTTPException(status_code=422, detail="Guided steps are limited to 30 entries")
+    if any(len(step) > 2000 for step in cleaned):
+        raise HTTPException(
+            status_code=422, detail="Each guided step must be under 2000 characters"
+        )
+    next_revision = (
+        db.execute(
+            select(GuidedStepRevision.revision)
+            .where(GuidedStepRevision.finding_id == finding.id)
+            .order_by(GuidedStepRevision.revision.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+        or 0
+    ) + 1
+    revision = GuidedStepRevision(
+        project_id=project.id,
+        finding_id=finding.id,
+        revision=next_revision,
+        steps=cleaned,
+        note=note.strip(),
+        actor_id=actor.id,
+        actor_label=actor.display_name or actor.email,
+    )
+    db.add(revision)
+    db.flush()
+    return revision
+
+
 def guided_package(
     db: Session,
     *,
@@ -312,6 +363,10 @@ def guided_package(
             "note": "The legitimate owner must still receive the object or document.",
         }
     latest = latest_observation(db, finding.id, build.id)
+    step_revision = latest_guided_steps(db, finding.id)
+    steps = (
+        list(step_revision.steps) if step_revision is not None else list(finding.reproduction_steps)
+    )
     return {
         "finding_id": str(finding.id),
         "public_id": finding.public_id,
@@ -324,7 +379,8 @@ def guided_package(
             for account in accounts
         ],
         "required_fixtures": list(finding.prerequisites),
-        "steps": list(finding.reproduction_steps),
+        "steps": steps,
+        "steps_revision": step_revision.revision if step_revision is not None else 0,
         "expected_after_fix": finding.expected_behavior,
         "observed_behavior": finding.observed_behavior,
         "control_check": control,

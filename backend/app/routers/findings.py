@@ -33,6 +33,7 @@ from app.services.evidence import read_bytes, save_bytes, validate_attachment
 from app.services.policy import PolicyError
 from app.services.recipes import (
     approve_revision,
+    create_guided_step_revision,
     create_recipe_revision,
     guided_package,
     recipe_for_finding,
@@ -78,12 +79,17 @@ class GuidedSubmit(BaseModel):
     notes: str = Field(min_length=4, max_length=8000)
     artifact_id: uuid.UUID | None = None
     evidence_link: str = Field(default="", max_length=500)
-    steps_revision: int = Field(default=1, ge=1)
+    steps_revision: int = Field(default=0, ge=0)
 
 
 class ReviewRequest(BaseModel):
     decision: str = Field(pattern="^(accepted|changes_requested)$")
     reason: str = Field(default="", max_length=2000)
+
+
+class GuidedStepsRequest(BaseModel):
+    steps: list[str] = []
+    note: str = Field(default="", max_length=2000)
 
 
 class RecipeRequest(BaseModel):
@@ -284,6 +290,45 @@ def guided(
         build=build,
         can_submit=access.can(Role.DEVELOPER),
     )
+
+
+@ROUTER.post("/findings/{finding_id}/guided-steps", status_code=201)
+def revise_guided_steps(
+    finding_id: uuid.UUID,
+    payload: GuidedStepsRequest,
+    access: ProjectAccess = Depends(require_project(Role.OPERATOR)),
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(csrf_protected),
+) -> dict:
+    finding = _finding_or_404(db, access, finding_id)
+    revision = create_guided_step_revision(
+        db,
+        project=access.project,
+        finding=finding,
+        steps=payload.steps,
+        note=payload.note,
+        actor=principal.user,
+    )
+    db.add(
+        AuditEvent(
+            actor_id=principal.user.id,
+            actor_label=principal.label,
+            project_id=access.project.id,
+            action="finding.guided_steps_revised",
+            target_type="finding",
+            target_id=str(finding.id),
+            metadata_json={"revision": revision.revision, "steps": len(revision.steps)},
+        )
+    )
+    db.commit()
+    return {
+        "finding_id": str(finding.id),
+        "revision": revision.revision,
+        "steps": revision.steps,
+        "note": revision.note,
+        "actor": revision.actor_label,
+        "created_at": revision.created_at.isoformat(),
+    }
 
 
 @ROUTER.get("/findings/{finding_id}/recipe")

@@ -51,7 +51,7 @@ its location only.
 
 `.github/workflows/ci.yml` runs:
 
-1. Backend: frozen install, Ruff, format check, mypy, 97 tests against PostgreSQL.
+1. Backend: frozen install, Ruff, format check, mypy, 100 tests against PostgreSQL.
 2. Frontend: `npm ci`, type check, production build.
 3. Security: pip-audit, npm audit, Bandit, secret scan, image build, Trivy image scan.
 

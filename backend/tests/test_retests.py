@@ -117,6 +117,47 @@ def test_inconclusive_attempt_never_creates_observation(db, lab_project, setting
     assert state.reason_code == "expired_credentials"
 
 
+def test_guided_step_revisions_preserve_original_steps(db, lab_project):
+    from app.services.recipes import create_guided_step_revision, guided_package
+
+    finding = make_finding(db, lab_project.project)
+    original = list(finding.reproduction_steps)
+    first = create_guided_step_revision(
+        db,
+        project=lab_project.project,
+        finding=finding,
+        steps=["Open the approval page as tenant B", "Approve the tenant A request"],
+        note="Add the missing approval step",
+        actor=lab_project.operator,
+    )
+    db.commit()
+    assert first.revision == 1
+    assert finding.reproduction_steps == original
+    package = guided_package(
+        db,
+        project=lab_project.project,
+        finding=finding,
+        build=lab_project.builds["2024.10.2"],
+        can_submit=True,
+    )
+    assert package["steps_revision"] == 1
+    assert package["steps"] == [
+        "Open the approval page as tenant B",
+        "Approve the tenant A request",
+    ]
+    second = create_guided_step_revision(
+        db,
+        project=lab_project.project,
+        finding=finding,
+        steps=["Open the approval page", "Approve", "Confirm the owner control"],
+        note="Clarify the control",
+        actor=lab_project.operator,
+    )
+    db.commit()
+    assert second.revision == 2
+    assert finding.reproduction_steps == original
+
+
 def test_guided_submission_stays_pending_until_accepted(db, lab_project):
     finding = make_finding(db, lab_project.project)
     attempt = submit_guided(
@@ -129,7 +170,7 @@ def test_guided_submission_stays_pending_until_accepted(db, lab_project):
         notes="The cross-tenant read now returns 403; the owner still receives the invoice.",
         evidence_artifact_id=None,
         evidence_link="https://evidence.internal/atlas/guide-1",
-        steps_revision=1,
+        steps_revision=0,
         mode="demo",
     )
     db.commit()
@@ -169,7 +210,7 @@ def test_changes_requested_keeps_verdict_and_preserves_submission(db, lab_projec
         notes="Denied; no control captured.",
         evidence_artifact_id=None,
         evidence_link="https://evidence.internal/first",
-        steps_revision=1,
+        steps_revision=0,
         mode="demo",
     )
     db.commit()
@@ -196,7 +237,7 @@ def test_changes_requested_keeps_verdict_and_preserves_submission(db, lab_projec
         notes="Owner control works and the cross-tenant read still returns the object.",
         evidence_artifact_id=None,
         evidence_link="https://evidence.internal/second",
-        steps_revision=1,
+        steps_revision=0,
         mode="demo",
     )
     db.commit()
@@ -204,6 +245,27 @@ def test_changes_requested_keeps_verdict_and_preserves_submission(db, lab_projec
 
     assert db.query(RetestAttempt).filter_by(finding_id=finding.id).count() == 2
     assert first.id != second.id
+
+
+def test_guided_submission_rejects_unknown_steps_revision(db, lab_project):
+    import pytest
+    from fastapi import HTTPException
+
+    finding = make_finding(db, lab_project.project)
+    with pytest.raises(HTTPException):
+        submit_guided(
+            db,
+            project=lab_project.project,
+            finding=finding,
+            build=lab_project.builds["2024.10.2"],
+            actor=lab_project.developer,
+            outcome="fix_verified",
+            notes="Denied; control works.",
+            evidence_artifact_id=None,
+            evidence_link="https://evidence.internal/revision-check",
+            steps_revision=99,
+            mode="demo",
+        )
 
 
 def test_guided_submission_requires_evidence_for_conclusive_outcome(db, lab_project):
@@ -222,7 +284,7 @@ def test_guided_submission_requires_evidence_for_conclusive_outcome(db, lab_proj
             notes="It looks fixed.",
             evidence_artifact_id=None,
             evidence_link="",
-            steps_revision=1,
+            steps_revision=0,
             mode="demo",
         )
 

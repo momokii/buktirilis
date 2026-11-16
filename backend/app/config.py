@@ -66,6 +66,7 @@ class Settings(BaseSettings):
     worker_id: str = Field(default="", alias="WORKER_ID")
     job_max_attempts: int = 2
     max_upload_bytes: int = 10 * 1024 * 1024
+    evidence_retention_days: int = Field(default=0, alias="EVIDENCE_RETENTION_DAYS")
 
     login_rate_limit_window_seconds: int = 300
     login_rate_limit_max_failures: int = 5

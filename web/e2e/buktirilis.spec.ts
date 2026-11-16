@@ -139,6 +139,15 @@ test("guided retest stays pending until an operator accepts it", async ({ page }
   await page.getByRole("link", { name: /Two-actor invoice approval/ }).first().click();
   await expect(page.getByRole("heading", { name: /Guided retest/ })).toBeVisible();
   await expect(page.getByText(/Why automation is unavailable/)).toBeVisible();
+  await page.getByRole("button", { name: "Revise guided steps" }).click();
+  await page
+    .getByLabel("Ordered steps")
+    .fill(
+      "As the tenant A submitter, create the approval request.\nAs the tenant B approver, approve it.\nAs the tenant A approver, confirm the legitimate control.",
+    );
+  await page.getByLabel("Reason for the revision").fill("Clarify the two-actor sequence.");
+  await page.getByRole("button", { name: "Save revision" }).click();
+  await expect(page.getByText(/Steps revision r\d+/).first()).toBeVisible();
   await page.getByLabel("Outcome").selectOption("still_reproducible");
   await page.getByLabel("What did you observe?").fill(
     "Tenant B approver completed the tenant A approval; the owner control still works.",

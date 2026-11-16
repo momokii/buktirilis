@@ -17,6 +17,7 @@ from app.models import (
     Evidence,
     EvidenceDecision,
     Finding,
+    GuidedStepRevision,
     Observation,
     OpenApiDocument,
     Project,
@@ -293,6 +294,13 @@ def finding_detail_row(
             .order_by(EvidenceDecision.created_at)
         ).scalars()
     )
+    guided_steps = list(
+        db.execute(
+            select(GuidedStepRevision)
+            .where(GuidedStepRevision.finding_id == finding.id)
+            .order_by(GuidedStepRevision.revision)
+        ).scalars()
+    )
     recipe = db.execute(select(Recipe).where(Recipe.finding_id == finding.id)).scalar_one_or_none()
     marked_ready = None
     if target_build is not None:
@@ -343,6 +351,16 @@ def finding_detail_row(
                 "at": iso(decision.created_at),
             }
             for decision in decisions
+        ],
+        "guided_steps": [
+            {
+                "revision": step.revision,
+                "steps": step.steps,
+                "note": step.note,
+                "actor": step.actor_label,
+                "at": iso(step.created_at),
+            }
+            for step in guided_steps
         ],
         "disposition": finding.disposition,
         "disposition_reason": finding.disposition_reason,

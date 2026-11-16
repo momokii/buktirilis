@@ -217,7 +217,7 @@ cd web && npx playwright install chromium
 
 Verified in this environment (see [docs/progress.md](docs/progress.md) for exact output):
 
-- Backend: **97 tests** covering policy/OpenAPI overrides, redaction, replay assertions,
+- Backend: **100 tests** covering policy/OpenAPI overrides, redaction, replay assertions,
   retest/review semantics, verdict derivation, comparison buckets, pipeline, cancellation,
   revoked access, worker lease reconciliation, exports, API/CSRF/isolation, and the Strix
   subprocess contract.
@@ -235,7 +235,7 @@ Verified in this environment (see [docs/progress.md](docs/progress.md) for exact
 | `backend/app/services/` | Policy/OpenAPI, replay runner, recipes, retests, findings/comparison, ingest, releases, runs/queue, pipeline, exports, Strix adapter, demo seed |
 | `backend/app/routers/` | Auth, admin, projects/builds, runs/reports, findings/retests, exports |
 | `backend/migrations/` | Alembic schema (ordered, cycle-safe initial migration + follow-up) |
-| `backend/tests/` | 97 tests, including a real local HTTP lab fixture |
+| `backend/tests/` | 100 tests, including a real local HTTP lab fixture |
 | `lab/` | Synthetic Atlas Billing staging API with three deployments |
 | `web/src/` | React app, accessible UI primitives, report/finding/compare screens |
 | `web/e2e/` | Playwright browser and accessibility tests |
@@ -243,6 +243,12 @@ Verified in this environment (see [docs/progress.md](docs/progress.md) for exact
 | `compose.yaml` | Single-host deployment (db, api, worker, web, demo lab profile) |
 | `scripts/verify-isolation.sh` | Worker-side allowed/denied/redirect probe for the live boundary |
 | `.env` (gitignored) | Deployment secret, database password, bind interface, and mode |
+
+## Retention and portable deployment
+
+Raw evidence can be pruned with `make prune-evidence DAYS=90` (dry-run first); findings,
+verdicts, accepted observations, and frozen exports remain, and pruned rows are marked. See
+`docs/deploying-elsewhere.md` for a one-command Compose deployment and parity checklist.
 
 ## Known limits
 

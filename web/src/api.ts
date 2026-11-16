@@ -206,6 +206,7 @@ export interface EvidenceItem {
   endpoint: string;
   artifact_id: string | null;
   created_at: string;
+  pruned_at?: string | null;
   payload: Record<string, unknown>;
   highlight: string[];
   artifact?: {
@@ -280,6 +281,7 @@ export interface FindingDetail {
   root_cause_hypothesis: string | null;
   evidence_status: "supported" | "needs_validation";
   evidence_decisions: { status: string; reason: string; actor: string; at: string }[];
+  guided_steps: { revision: number; steps: string[]; note: string; actor: string; at: string }[];
   retest_method: RetestMethod;
   disposition: string;
   disposition_reason: string;

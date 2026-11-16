@@ -367,7 +367,7 @@ def test_retest_flow_and_guided_review(api, client, db):
             "outcome": "still_reproducible",
             "notes": "Cross-tenant read still returns the object; owner control works.",
             "evidence_link": "https://evidence.internal/guided-1",
-            "steps_revision": 1,
+            "steps_revision": 0,
         },
     )
     assert guided.status_code == 201, guided.text

@@ -42,6 +42,6 @@ execution remains unobserved pending worker provisioning.
 - No real secrets are committed; demo credentials are generated into a gitignored file.
 
 ## Last Updated
-2026-11-16: retention, guided-step revisions, and portable deployment complete; 100 backend
+2026-11-16: retention, guided-step revisions, and portable deployment complete (commit 02f86e1); 100 backend
 and 14 browser tests pass, audits/image scan clean. Demo pilot redeployed; live execution and isolation remain
 unverified pending a provisioned worker.

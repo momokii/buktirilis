@@ -22,10 +22,13 @@ from app.models import (
     OpenApiDocument,
     Project,
     ProjectMember,
+    RecipeRevision,
     Run,
     TargetConfig,
+    TestAccount,
     User,
 )
+from app.security import decrypt_secret
 from app.services import demo, ingest, releases
 from app.services.evidence import artifact_root
 from app.services.findings import coverage_counts
@@ -52,6 +55,184 @@ logger = logging.getLogger(__name__)
 
 def utcnow() -> datetime:
     return datetime.now(UTC)
+
+
+def probe_prerequisites(
+    db: Session,
+    *,
+    run: Run,
+    build: Build,
+    policy: TargetPolicy,
+    settings: Settings,
+) -> dict[str, Any]:
+    """Verify selected identities and recipe fixtures from inside the worker.
+
+    Runs fail closed here instead of silently proceeding with fewer authenticated
+    scenarios. The submission preflight checks configuration; this checks reachability.
+    """
+    del settings  # reserved for future per-deployment probe controls
+    snapshot = run.scope_snapshot or {}
+    selected = [str(name) for name in (snapshot.get("accounts") or []) if name]
+    selected = [
+        entry if isinstance(entry, str) else str(entry.get("name"))
+        for entry in snapshot.get("accounts") or []
+    ]
+    result: dict[str, Any] = {
+        "unauthenticated": bool(snapshot.get("unauthenticated")),
+        "accounts": [],
+        "fixtures": [],
+        "ok": True,
+    }
+    if result["unauthenticated"] or not selected:
+        return result
+
+    accounts = {
+        account.name: account
+        for account in db.execute(
+            select(TestAccount).where(
+                TestAccount.project_id == run.project_id, TestAccount.name.in_(selected)
+            )
+        ).scalars()
+    }
+    for name in selected:
+        account = accounts.get(name)
+        if account is None:
+            result["accounts"].append(
+                {"name": name, "ok": False, "status": None, "detail": "identity is not configured"}
+            )
+            result["ok"] = False
+            continue
+        try:
+            url = policy.check(
+                policy.resolve(build.target_url, account.identity_check_path).url
+            ).url
+        except Exception as exc:  # converted to a safe probe result
+            result["accounts"].append(
+                {"name": name, "ok": False, "status": None, "detail": str(exc)[:200]}
+            )
+            result["ok"] = False
+            continue
+        exchange = send(
+            policy=policy,
+            method="GET",
+            url=url,
+            headers={
+                "Authorization": f"Bearer {decrypt_secret(account.credential_ciphertext)}",
+                "Accept": "application/json",
+            },
+        )
+        payload = exchange.json() if exchange.status == 200 else None
+        observed_tenant = payload.get("tenant_id") if isinstance(payload, dict) else None
+        observed_account = (
+            payload.get("account") or payload.get("account_id")
+            if isinstance(payload, dict)
+            else None
+        )
+        ok = (
+            exchange.status == 200
+            and isinstance(payload, dict)
+            and (
+                (account.tenant_label and str(observed_tenant) == account.tenant_label)
+                or (not account.tenant_label and str(observed_account) == account.name)
+            )
+        )
+        detail = (
+            f"HTTP {exchange.status}"
+            if exchange.status is not None
+            else (exchange.error or "transport error")
+        )
+        result["accounts"].append(
+            {
+                "name": name,
+                "ok": ok,
+                "status": exchange.status,
+                "detail": detail,
+                "tenant": account.tenant_label,
+            }
+        )
+        if not ok:
+            result["ok"] = False
+
+    plan = snapshot.get("release_plan") or {}
+    candidate_revisions = {
+        str(candidate.get("recipe_revision_id"))
+        for candidate in plan.get("candidates", [])
+        if candidate.get("action") == "automatic" and candidate.get("recipe_revision_id")
+    }
+    result["planned_revisions"] = sorted(candidate_revisions)
+    result["plan_candidates"] = len(plan.get("candidates") or [])
+    for revision_id in sorted(candidate_revisions):
+        try:
+            revision_uuid = uuid.UUID(revision_id)
+        except (TypeError, ValueError):
+            continue
+        revision = db.get(RecipeRevision, revision_uuid)
+        if revision is None or revision.approved_at is None:
+            continue
+        owner_name = str((revision.identity_refs or {}).get("owner") or "")
+        owner = accounts.get(owner_name)
+        if owner is None:
+            result["fixtures"].append(
+                {
+                    "revision": revision.revision,
+                    "name": owner_name,
+                    "ok": False,
+                    "detail": "owner identity is not available for the fixture check",
+                }
+            )
+            result["ok"] = False
+            continue
+        for ref in revision.fixture_refs or []:
+            check_path = ref.get("check_path")
+            if not check_path:
+                continue
+            try:
+                url = policy.check(policy.resolve(build.target_url, str(check_path)).url).url
+            except Exception as exc:  # safe probe result
+                result["fixtures"].append(
+                    {
+                        "revision": revision.revision,
+                        "name": ref.get("name"),
+                        "ok": False,
+                        "detail": str(exc)[:200],
+                    }
+                )
+                result["ok"] = False
+                continue
+            exchange = send(
+                policy=policy,
+                method="GET",
+                url=url,
+                headers={
+                    "Authorization": f"Bearer {decrypt_secret(owner.credential_ciphertext)}",
+                    "Accept": "application/json",
+                },
+            )
+            payload = exchange.json() if exchange.status == 200 else None
+            expect = ref.get("expect") or {}
+            expected_status = int(expect.get("status", 200))
+            ok = exchange.status == expected_status
+            field = expect.get("json_field")
+            if ok and field and isinstance(payload, dict):
+                wanted = expect.get("equals")
+                if wanted == "owner_tenant":
+                    wanted = owner.tenant_label
+                if wanted is not None:
+                    ok = str(payload.get(field)) == str(wanted)
+            result["fixtures"].append(
+                {
+                    "revision": revision.revision,
+                    "name": ref.get("name"),
+                    "ok": ok,
+                    "status": exchange.status,
+                    "detail": f"HTTP {exchange.status}"
+                    if exchange.status is not None
+                    else exchange.error,
+                }
+            )
+            if not ok:
+                result["ok"] = False
+    return result
 
 
 def _project_for(db: Session, run: Run) -> Project:
@@ -248,7 +429,8 @@ def execute_run(db: Session, *, run: Run, job: Job, settings: Settings) -> dict[
     db.flush()
 
     build = db.get(Build, run.build_id)
-    assert build is not None
+    if build is None:
+        raise RuntimeError("run references a missing build")
     start_stage(db, run.id, StageCode.PREFLIGHT.value)
     heartbeat(db, job=job, settings=settings)
 
@@ -317,9 +499,43 @@ def execute_run(db: Session, *, run: Run, job: Job, settings: Settings) -> dict[
             return {"failed": True}
         snapshot["live_preflight"] = pre.checks
         run.scope_snapshot = snapshot
+    prerequisite_probe = probe_prerequisites(
+        db, run=run, build=build, policy=policy, settings=settings
+    )
+    snapshot = dict(run.scope_snapshot or {})
+    snapshot["prerequisite_probe"] = prerequisite_probe
+    run.scope_snapshot = snapshot
+    db.flush()
+    if not prerequisite_probe["ok"]:
+        failed_accounts = [
+            entry["name"] for entry in prerequisite_probe["accounts"] if not entry["ok"]
+        ]
+        failed_fixtures = [
+            f"recipe r{entry['revision']} fixture {entry['name']}"
+            for entry in prerequisite_probe["fixtures"]
+            if not entry["ok"]
+        ]
+        detail = ", ".join([*failed_accounts, *failed_fixtures])
+        _fail(
+            db,
+            run=run,
+            job=job,
+            reason=(
+                "Authenticated prerequisites failed before discovery. Fix the listed "
+                f"identities/fixtures or submit a reduced-scope run: {detail}."
+            ),
+            stage_code=StageCode.PREFLIGHT.value,
+            error_code="prerequisite_failed",
+        )
+        return {"failed": True, "prerequisites": prerequisite_probe}
     finish_stage(db, run.id, StageCode.PREFLIGHT.value, StageState.DONE.value, "Preflight passed.")
     _record(
-        db, run, f"Build identity verified as {identity['observed']}.", code="identity.verified"
+        db,
+        run,
+        f"Build identity verified as {identity['observed']}; "
+        f"{len(prerequisite_probe['accounts'])} identity probe(s), "
+        f"{len(prerequisite_probe['fixtures'])} fixture probe(s) passed.",
+        code="identity.verified",
     )
     heartbeat(db, job=job, settings=settings)
 
@@ -462,6 +678,15 @@ def execute_run(db: Session, *, run: Run, job: Job, settings: Settings) -> dict[
                 run_dir=run_dir,
                 spec_path=spec_path,
                 timeout_seconds=int(run.budget.get("max_runtime_seconds", 3600)),
+                focus_routes=[
+                    f"{candidate['method']} {candidate['route']}"
+                    for candidate in (
+                        ((run.scope_snapshot or {}).get("release_plan") or {}).get(
+                            "discovery_candidates"
+                        )
+                        or []
+                    )
+                ],
                 cancel_check=cancelled,
                 heartbeat=lambda: heartbeat(db, job=job, settings=settings),
             )

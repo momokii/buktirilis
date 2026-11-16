@@ -1681,6 +1681,8 @@ ol.steps li::marker {
 
 .visually-hidden {
   position: absolute;
+  left: 0;
+  top: 0;
   width: 1px;
   height: 1px;
   overflow: hidden;
@@ -1891,4 +1893,28 @@ ol.steps li::marker {
 
 .table-wrap {
   max-width: 100%;
+}
+
+/* Native dialogs are shrink-to-fit; keep long option text and nested grids from
+   expanding the top-layer box past the viewport. */
+.dialog,
+.dialog-inner,
+.dialog-body,
+.dialog-body > *,
+.dialog .grid-2,
+.dialog .grid-2 > *,
+.dialog fieldset {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dialog-body {
+  overflow-x: hidden;
+}
+
+.dialog-body,
+.dialog-body * {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }

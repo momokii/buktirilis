@@ -536,6 +536,7 @@ def report_coverage(
             },
             "release_plan": snapshot.get("release_plan"),
             "identity_checks": snapshot.get("identity_checks", []),
+            "prerequisite_probe": snapshot.get("prerequisite_probe"),
         },
         "limitations": run.limitations,
         "coverage_complete": run.coverage_complete,

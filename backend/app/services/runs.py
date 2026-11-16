@@ -11,6 +11,7 @@ from typing import Any
 
 from fastapi import HTTPException
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import Settings
@@ -677,7 +678,9 @@ def create_run(
     if kind == RunKind.RELEASE_SCAN:
         from app.services.releases import build_release_plan
 
-        snapshot["release_plan"] = build_release_plan(db, run)
+        # Assign a fresh dict: JSONB in-place mutation of the value already set on the
+        # instance is not reliably flushed after the initial INSERT.
+        snapshot = {**snapshot, "release_plan": build_release_plan(db, run)}
         run.scope_snapshot = snapshot
         db.flush()
     job = Job(
@@ -696,7 +699,22 @@ def create_run(
         max_attempts=settings.job_max_attempts,
     )
     db.add(job)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        # A concurrent identical submission won the active-key race. Return that run
+        # instead of surfacing a database error.
+        db.rollback()
+        existing = db.execute(
+            select(Job, Run)
+            .join(Run, Run.job_id == Job.id)
+            .where(Job.idempotency_key == idempotency_key)
+            .order_by(Job.created_at.desc())
+            .limit(1)
+        ).first()
+        if existing is not None:
+            return existing[1], False
+        raise
     run.job_id = job.id
     for code in (
         StageCode.PREFLIGHT,

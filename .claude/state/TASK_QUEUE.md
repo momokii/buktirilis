@@ -23,9 +23,9 @@ real task. Do not install a stack merely because the queue contains foundation w
 | Task ID | TASK-002 |
 | Name | Add automated security guardrails |
 | Priority | High |
-| Status | BLOCKED |
+| Status | DONE (local); CI unverified |
 | Complexity | M |
-| Depends On | TASK-001 and explicit user confirmation of proposed guardrails |
+| Depends On | TASK-001 and explicit user confirmation (given 2026-11-16) |
 | Scope | Propose and, with confirmation, add pre-commit secret scanning, dependency audit, static analysis, image scanning if containerized, CI running tests/lint/types/scans, and dependency update tooling. Document commands and findings policy. |
 | Acceptance Criteria | Approved checks run locally and in CI as applicable; safe synthetic negative cases demonstrate gates fail on violations; lockfile installs reproducible; applicable scans clean or findings explicitly triaged; no real secrets used to test scanners. |
 | Security Concerns | Least-privilege CI tokens; trusted pinned actions/tools; no credentials in artifacts/logs; hooks cannot be silently bypassed; edits to protected hook/config files require expected approval. |
@@ -48,8 +48,10 @@ real task. Do not install a stack merely because the queue contains foundation w
 - [x] Approved scope, builds, OpenAPI validation, identity observation/attestation
 - [x] Run lifecycle, preflight, demo fixtures, worker lease, cancellation, interruption
 - [x] Evidence, replay recipes, guided retests, review acceptance, comparison, exports
-- [x] 86 backend tests, 12 Playwright tests, axe scan, fresh-seed and PDF/CSV/JSON verification
+- [x] 92 backend tests, 14 Playwright tests, axe scan, fresh-seed and PDF/CSV/JSON verification
 - [x] Documentation and reproducible demo walkthrough
+- [x] Security guardrails: pip-audit, npm audit, Bandit, detect-secrets baseline, Trivy, pinned CI
+- [x] Worker prerequisite probes, evidence-decision history, surface-absent reasons, OpenAPI diff
 
 ## Completed infrastructure work
 - [x] Initial Claude Code bootstrap and readiness recheck

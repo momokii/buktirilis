@@ -243,6 +243,80 @@ def test_comparison_uses_run_snapshot_not_later_retest(db, lab_project):
     assert panel and panel[0]["outcome"] == "still_reproducible"
 
 
+def test_comparison_evidence_status_uses_the_run_snapshot(db, lab_project):
+    from app.models import EvidenceDecision
+    from app.services.findings import evidence_status_as_of
+
+    finding = make_finding(db, lab_project.project, evidence_status="needs_validation")
+    run_a = _run(db, lab_project, "2024.10.1", T0)
+    run_b = _run(db, lab_project, "2024.10.2", T0 + timedelta(days=7))
+    add_observation(db, finding, run_a.build_id, outcome="observed", observed_at=T0, run=run_a)
+    add_observation(
+        db,
+        finding,
+        run_b.build_id,
+        outcome="observed",
+        observed_at=T0 + timedelta(days=7),
+        run=run_b,
+    )
+    db.add(
+        EvidenceDecision(
+            project_id=lab_project.project.id,
+            finding_id=finding.id,
+            status="needs_validation",
+            reason="Initial weak capture",
+            actor_label="ingest",
+            created_at=T0 - timedelta(hours=1),
+        )
+    )
+    db.add(
+        EvidenceDecision(
+            project_id=lab_project.project.id,
+            finding_id=finding.id,
+            status="supported",
+            reason="Reviewer accepted the capture after the run",
+            actor_label="Reviewer",
+            created_at=T0 + timedelta(days=30),
+        )
+    )
+    finding.evidence_status = "supported"
+    db.flush()
+    rows = comparison_findings(db, run_a, run_b)
+    assert rows[0]["evidence_status"] == "needs_validation"
+    assert rows[0]["bucket"] == "needs_validation"
+    assert evidence_status_as_of(db, finding, None) == "supported"
+
+
+def test_absent_finding_route_reports_a_surface_gap(db, lab_project):
+    from app.models import Surface
+
+    finding = make_finding(
+        db,
+        lab_project.project,
+        scope="GET /api/removed/{invoice_id}",
+        actors="tenant-b -> tenant-a removed route",
+    )
+    run_a = _run(db, lab_project, "2024.10.1", T0)
+    run_b = _run(db, lab_project, "2024.10.2", T0 + timedelta(days=7))
+    add_observation(db, finding, run_a.build_id, outcome="observed", observed_at=T0, run=run_a)
+    db.add(
+        Surface(
+            project_id=lab_project.project.id,
+            run_id=run_b.id,
+            route="/api/other",
+            methods=["GET"],
+            source="recon",
+            tested=True,
+        )
+    )
+    db.flush()
+    rows = comparison_findings(db, run_a, run_b)
+    row = next(item for item in rows if item["id"] == str(finding.id))
+    assert row["bucket"] == "awaiting_verification"
+    assert "surface inventory" in row["bucket_reason"]
+    assert row["verification"]["reason_code"] == "surface_absent"
+
+
 def test_mode_mismatch_makes_comparison_incomparable(db, lab_project):
     run_a = _run(db, lab_project, "2024.10.1", T0, mode="live")
     run_b = _run(db, lab_project, "2024.10.2", T0 + timedelta(days=1), mode="demo")

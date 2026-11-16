@@ -15,6 +15,7 @@ from app.models import (
     Artifact,
     Build,
     Evidence,
+    EvidenceDecision,
     Finding,
     Observation,
     OpenApiDocument,
@@ -285,6 +286,13 @@ def finding_detail_row(
             .order_by(Observation.observed_at.desc())
         ).scalars()
     )
+    decisions = list(
+        db.execute(
+            select(EvidenceDecision)
+            .where(EvidenceDecision.finding_id == finding.id)
+            .order_by(EvidenceDecision.created_at)
+        ).scalars()
+    )
     recipe = db.execute(select(Recipe).where(Recipe.finding_id == finding.id)).scalar_one_or_none()
     marked_ready = None
     if target_build is not None:
@@ -327,6 +335,15 @@ def finding_detail_row(
         "root_cause_hypothesis": finding.root_cause_hypothesis,
         "evidence_status": finding.evidence_status,
         "retest_method": eligibility(finding),
+        "evidence_decisions": [
+            {
+                "status": decision.status,
+                "reason": decision.reason,
+                "actor": decision.actor_label,
+                "at": iso(decision.created_at),
+            }
+            for decision in decisions
+        ],
         "disposition": finding.disposition,
         "disposition_reason": finding.disposition_reason,
         "fingerprint": finding.fingerprint,

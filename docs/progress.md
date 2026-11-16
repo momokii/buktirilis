@@ -43,19 +43,19 @@ container on `127.0.0.1:55432`, lab on `127.0.0.1:8099`.
 | Backend lint | `cd backend && .venv/bin/ruff check app tests` | **Passed** |
 | Backend format | `cd backend && .venv/bin/ruff format --check app tests` | **Passed** |
 | Backend types | `cd backend && .venv/bin/mypy app` | **Passed** (38 files) |
-| Backend tests | `cd backend && .venv/bin/python -m pytest` | **86 passed** |
+| Backend tests | `cd backend && .venv/bin/python -m pytest` | **92 passed** |
 | Web types | `cd web && npm run typecheck` | **Passed** |
 | Web build | `cd web && npm run build` | **Passed** (production bundle) |
-| Browser E2E | `cd web && npx playwright test` | **12 passed** (deployed tailnet URL, 1440 + 390) |
+| Browser E2E | `cd web && npx playwright test` | **14 passed** (deployed tailnet URL, 1440 + 390) |
 | Accessibility | axe-core via Playwright, WCAG 2 A/AA + 2.1/2.2 AA | **No serious/critical violations** |
 | Migrations | `alembic upgrade head && alembic check` | **No pending model diff** |
-| Fresh seed | new DB → `alembic upgrade head` → `python -m app.cli seed-demo` | **Passed**; 4 users, 1 project, 3 runs, 4 findings, 5 exports |
+| Fresh seed | new DB → `alembic upgrade head` → `python -m app.cli seed-demo` | **Passed**; 4 users, 1 project, 3 runs, 4 findings, 4 exports |
 | PDF output | pypdf on the seeded snapshot | **6 pages**, has snapshot time + limitations |
 | CSV/JSON | parsed seeded exports | findings/coverage agree; no credential values |
 | Compose syntax | `docker compose config` (base + demo profile) | **Valid** |
 | Isolation probe script | `bash -n scripts/verify-isolation.sh` | **Syntax passed**; execution requires the provisioned worker |
 | Compose deployment | `make deploy` on this host | **Running** on `http://100.124.184.116:8088`; api/db/lab healthy, web bound to the tailnet address only |
-| Deployed browser E2E | `E2E_EXTERNAL=1 E2E_BASE_URL=http://100.124.184.116:8088 ... npx playwright test` | **12 passed** |
+| Deployed browser E2E | `E2E_EXTERNAL=1 E2E_BASE_URL=http://100.124.184.116:8088 ... npx playwright test` | **14 passed** |
 | Restart persistence | `docker compose restart api worker web` | Login, 3 runs, and exports survived |
 
 Evidence screenshots: `docs/screenshots/` (report overview, filtered findings, finding
@@ -109,9 +109,23 @@ Findings fixed and covered by tests:
 8. **Release Scan did not re-check authorization at stage 2.** A policy narrowed during
    known-finding replay now stops discovery before it starts and marks the run failed
    with a recorded reason.
+9. **Preflight did not probe identities/fixtures.** The worker now verifies each selected
+   identity and planned recipe fixture against the approved target before discovery; any
+   failure fails the run closed with the exact prerequisite listed.
+10. **Evidence review state was not historical.** Evidence decisions are now append-only and
+    comparisons/exports derive the status as of each run snapshot; current decisions are
+    shown separately.
+11. **Missing routes had no explicit reason.** An absent affected route now reports
+    `surface_absent` / Awaiting verification instead of a generic "not tested" state.
+12. **OpenAPI changes did not drive discovery.** Added/changed operations are recorded in the
+    release plan, shown in the UI, and passed to the live engine instruction as focus routes.
+13. **Security guardrails were absent.** Added pip-audit, npm audit, Bandit,
+    detect-secrets baseline scanning, Trivy image scan, pinned CI actions, and dependency
+    upgrades that cleared known CVEs. See `docs/security-guardrails.md`.
+14. **Browser coverage gaps.** Added login/admin/settings axe checks, console-error checks,
+    and run-wizard/admin 390 px tests.
 
-Backend tests increased from 81 to **86**; browser tests from 11 to **12** (login and
-admin/settings axe scans added).
+Backend tests increased from 81 to **92**; browser tests from 11 to **14**.
 
 ## Blocked / not verified
 
@@ -125,6 +139,10 @@ admin/settings axe scans added).
   `v1.7.1` sample was available, so only its absence handling is verified.
 - **DNS pinning**: resolution is checked, but the connection is not pinned; require an
   enforcing gateway for rebinding-sensitive targets.
+- **CI has not run remotely** (no remote repository push): the workflow is present and the same
+  checks pass locally, but GitHub Actions execution is unverified.
+- **Live authenticated exploration** remains disabled; the worker prerequisite probe verifies
+  identities without sending them to the model.
 
 ## Current deployment (demo pilot)
 
@@ -135,6 +153,14 @@ admin/settings axe scans added).
 - Credentials: `var/demo-credentials.txt` (mode 600, gitignored); rotate the admin password
   after signing in.
 - API, database, and lab are not published; lab is loopback-only.
+
+## Backlog state (2026-11-16)
+
+- TASK-001 foundation: DONE
+- TASK-002 security guardrails: DONE locally (audits/static/secret/image clean,
+  pinned CI workflow added); CI execution remains unverified until a push.
+- TASK-003 live Strix pilot: BLOCKED on external worker/model/target prerequisites.
+- Product/demo release: complete; no code-side backlog items remain.
 
 ## Next action
 

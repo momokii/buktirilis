@@ -17,7 +17,7 @@ PUBLIC_ORIGIN ?= http://127.0.0.1:5173
 
 export
 
-.PHONY: help install db lab api worker web dev test lint typecheck check demo seed migrate compose-config clean deploy deploy-status
+.PHONY: help install db lab api worker web dev test lint typecheck check demo seed migrate compose-config clean deploy deploy-status audit-python audit-node static-analysis secret-scan image-scan security
 
 help:
 	@echo "BuktiRilis targets"
@@ -33,6 +33,8 @@ help:
 	@echo "  make demo        migrate, seed, and print the demo credentials path"
 	@echo "  make deploy      build/start the Compose stack, seed the demo, copy credentials"
 	@echo "  make deploy-status  show Compose service state and health"
+	@echo "  make security     audits + static analysis + secret scan"
+	@echo "  make image-scan   Trivy HIGH/CRITICAL scan of built images"
 	@echo "  make test        backend test suite"
 	@echo "  make lint        ruff lint + format check"
 	@echo "  make typecheck   mypy"
@@ -96,6 +98,27 @@ typecheck:
 
 check: lint typecheck test
 	cd web && npm run typecheck && npm run build
+
+audit-python:
+	cd $(BACKEND) && .venv/bin/pip-audit
+
+audit-node:
+	cd web && npm audit --audit-level=high
+
+static-analysis:
+	cd $(BACKEND) && .venv/bin/bandit -q -r app
+
+secret-scan:
+	$(BACKEND)/.venv/bin/detect-secrets-hook --baseline .secrets.baseline $$(git ls-files)
+
+security: lint typecheck audit-python audit-node static-analysis secret-scan
+
+image-scan:
+	@for image in buktirilis-api buktirilis-web buktirilis-lab; do \
+		docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v buktirilis-trivy-cache:/root/.cache/ \
+			aquasec/trivy:0.66.0 image --scanners vuln --severity HIGH,CRITICAL \
+			--ignore-unfixed --exit-code 1 "$$image" || exit 1; \
+	done
 
 compose-config:
 	docker compose config >/dev/null && echo "compose config valid"

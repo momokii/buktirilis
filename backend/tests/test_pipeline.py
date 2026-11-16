@@ -175,6 +175,55 @@ def test_narrowed_policy_stops_discovery_after_known_replay(db, lab_project, set
     assert stage.state == "failed"
 
 
+def test_identical_run_after_terminal_job_creates_a_new_run(db, lab_project, settings):
+    first = _execute(
+        db,
+        _create(db, lab_project, settings, kind=RunKind.BASELINE, build_label="2024.10.1"),
+        settings,
+    )
+    second = _create(db, lab_project, settings, kind=RunKind.BASELINE, build_label="2024.10.1")
+    assert first.id != second.id
+    second_job = db.get(Job, second.job_id)
+    assert second_job.state == "queued"
+
+
+def test_expired_identity_fails_preflight_instead_of_downgrading(db, lab_project, settings):
+    from app.models import TestAccount
+
+    accounts = (
+        db.query(TestAccount)
+        .filter(
+            TestAccount.project_id == lab_project.project.id,
+            TestAccount.name.in_(["tenant-a-owner", "tenant-b-expired"]),
+        )
+        .all()
+    )
+    run, _ = create_run(
+        db,
+        settings=settings,
+        project=lab_project.project,
+        build=lab_project.builds["2024.10.1"],
+        kind=RunKind.BASELINE.value,
+        depth="quick",
+        profile_code="web-api-access-control",
+        profile_version=1,
+        account_ids=[account.id for account in accounts],
+        unauthenticated=False,
+        baseline_run_id=None,
+        actor=lab_project.operator,
+        accept_reduced_scope=True,
+    )
+    db.commit()
+    run = _execute(db, run, settings)
+    db.refresh(run)
+    assert run.status == "failed"
+    assert "prerequisites failed" in (run.failure_reason or "")
+    assert "tenant-b-expired" in (run.failure_reason or "")
+    from app.models import Observation
+
+    assert db.query(Observation).filter_by(run_id=run.id).count() == 0
+
+
 def test_cancel_queued_run_is_terminal_without_a_worker(db, lab_project, settings):
     run = _create(db, lab_project, settings, kind=RunKind.BASELINE, build_label="2024.10.1")
     cancel_run(db, run=run, actor=lab_project.operator, reason="No longer needed")
@@ -207,18 +256,17 @@ def test_release_scan_verifies_fix_then_regresses(db, lab_project, settings):
     approve_recipe(db, lab_project.project, bola, lab_project.operator)
     db.commit()
 
-    release_b = _execute(
+    release_b = _create(
         db,
-        _create(
-            db,
-            lab_project,
-            settings,
-            kind=RunKind.RELEASE_SCAN,
-            build_label="2024.10.2",
-            baseline=baseline,
-        ),
+        lab_project,
         settings,
+        kind=RunKind.RELEASE_SCAN,
+        build_label="2024.10.2",
+        baseline=baseline,
     )
+    queued_plan = (release_b.scope_snapshot or {}).get("release_plan") or {}
+    assert queued_plan.get("candidates"), "release plan must be snapshotted at submission"
+    release_b = _execute(db, release_b, settings)
     db.refresh(release_b)
     assert release_b.status == "completed"
     assert state_for_build(db, bola.id, release_b.build_id).outcome.value == "fix_verified"

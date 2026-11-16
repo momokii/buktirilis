@@ -40,7 +40,7 @@ Verified in this environment (see `docs/progress.md` for results):
 | Demo seed | `make demo` (lab must be running) |
 | Run everything | `make dev` (lab :8099, API :8000, worker, Vite :5173) |
 | Health check | `curl -fsS http://127.0.0.1:8000/api/health` |
-| Backend tests | `cd backend && .venv/bin/python -m pytest` (86 tests) |
+| Backend tests | `cd backend && .venv/bin/python -m pytest` (92 tests) |
 | Lint / format | `make lint` |
 | Type check | `make typecheck` |
 | Web build | `cd web && npm run typecheck && npm run build` |

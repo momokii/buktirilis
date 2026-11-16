@@ -28,6 +28,7 @@ from app.models import (
     Artifact,
     Build,
     Evidence,
+    EvidenceDecision,
     Finding,
     Job,
     ManualReview,
@@ -202,9 +203,8 @@ def execute_attempt(db: Session, *, attempt: RetestAttempt, settings: Settings) 
         attempt.finished_at = utcnow()
         db.flush()
         return attempt
-    assert (
-        project is not None and finding is not None and build is not None and revision is not None
-    )
+    if project is None or finding is None or build is None or revision is None:
+        raise RuntimeError("retest attempt references missing project, finding, or revision")
 
     config = current_target_config(db, project.id)
     if config is None:
@@ -270,7 +270,8 @@ def execute_attempt(db: Session, *, attempt: RetestAttempt, settings: Settings) 
         attempt.finished_at = utcnow()
         db.flush()
         return attempt
-    assert actor_account is not None and owner_account is not None
+    if actor_account is None or owner_account is None:
+        raise RuntimeError("retest recipe identities are incomplete")
 
     result = evaluate_recipe(
         db,
@@ -522,6 +523,16 @@ def validate_evidence(
     if status not in {s.value for s in EvidenceStatus}:
         raise HTTPException(status_code=422, detail="Unknown evidence status")
     finding.evidence_status = status
+    db.add(
+        EvidenceDecision(
+            project_id=finding.project_id,
+            finding_id=finding.id,
+            status=status,
+            reason=note.strip() or "Reviewer decision",
+            actor_id=actor.id,
+            actor_label=actor.display_name or actor.email,
+        )
+    )
     if status == EvidenceStatus.NEEDS_VALIDATION.value:
         finding.retest_method = RetestMethod.PENDING_EVIDENCE_REVIEW.value
     else:

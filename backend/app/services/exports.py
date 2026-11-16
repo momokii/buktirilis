@@ -11,8 +11,8 @@ import hashlib
 import io
 import json
 from datetime import UTC, datetime
+from html import escape
 from typing import Any
-from xml.sax.saxutils import escape
 
 from fastapi import HTTPException
 from reportlab.lib import colors
@@ -36,6 +36,7 @@ from app.models import (
     Artifact,
     Build,
     Evidence,
+    EvidenceDecision,
     ExportSnapshot,
     Finding,
     Observation,
@@ -307,6 +308,13 @@ def _finding_snapshot(db: Session, *, run: Run, item, baseline: Run | None) -> d
             .order_by(Observation.observed_at)
         ).scalars()
     )
+    decisions = list(
+        db.execute(
+            select(EvidenceDecision)
+            .where(EvidenceDecision.finding_id == finding.id)
+            .order_by(EvidenceDecision.created_at)
+        ).scalars()
+    )
     observations = []
     for observation in history:
         observation_build = db.get(Build, observation.build_id)
@@ -339,8 +347,17 @@ def _finding_snapshot(db: Session, *, run: Run, item, baseline: Run | None) -> d
         "prerequisites": finding.prerequisites,
         "reproduction_steps": finding.reproduction_steps,
         "root_cause_hypothesis": finding.root_cause_hypothesis,
-        "evidence_status": finding.evidence_status,
-        "retest_method": eligibility(finding),
+        "evidence_status": item.evidence_status,
+        "retest_method": eligibility(finding, item.evidence_status),
+        "evidence_decisions": [
+            {
+                "status": decision.status,
+                "reason": decision.reason,
+                "actor": decision.actor_label,
+                "at": _iso(decision.created_at),
+            }
+            for decision in decisions
+        ],
         "disposition": finding.disposition,
         "disposition_reason": finding.disposition_reason,
         "verification": {

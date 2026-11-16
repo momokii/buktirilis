@@ -182,6 +182,7 @@ export interface ReportFinding {
   scope_summary: string;
   actors_summary: string;
   evidence_status: "supported" | "needs_validation";
+  evidence_decisions: { status: string; reason: string; actor: string; at: string }[];
   retest_method: RetestMethod;
   disposition: string;
   marked_ready?: boolean;
@@ -278,6 +279,7 @@ export interface FindingDetail {
   reproduction_steps: string[];
   root_cause_hypothesis: string | null;
   evidence_status: "supported" | "needs_validation";
+  evidence_decisions: { status: string; reason: string; actor: string; at: string }[];
   retest_method: RetestMethod;
   disposition: string;
   disposition_reason: string;
@@ -334,6 +336,12 @@ export interface CoverageReport {
     scope: Record<string, unknown>;
     release_plan: Record<string, unknown> | null;
     identity_checks: Record<string, unknown>[];
+    prerequisite_probe: {
+      unauthenticated: boolean;
+      ok: boolean;
+      accounts: { name: string; ok: boolean; status: number | null; detail: string; tenant?: string }[];
+      fixtures: { revision: number; name: string; ok: boolean; status?: number; detail: string }[];
+    } | null;
   };
   limitations: string[];
   coverage_complete: boolean;

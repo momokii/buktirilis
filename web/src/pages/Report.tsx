@@ -249,7 +249,7 @@ export function ReportPage() {
               </div>
             ))}
           </div>
-          <ul className="activity-list" style={{ marginTop: "0.6rem" }}>
+          <ul className="activity-list" tabIndex={0} aria-label="Run activity" style={{ marginTop: "0.6rem" }}>
             {activities.map((activity, index) => (
               <li key={`${activity.at}-${index}`}>
                 <time>{new Date(activity.at).toLocaleTimeString()}</time>
@@ -1036,6 +1036,147 @@ function CoverageTab({ projectId, runId }: { projectId: string; runId: string })
           </table>
         </TableWrap>
       </Section>
+
+      {data.methodology.release_plan ? (
+        <Section
+          title="Release scan plan"
+          description="The candidate set and eligible recipes snapshotted when this release scan was submitted."
+        >
+          {(() => {
+            const plan = data.methodology.release_plan as {
+              candidates?: {
+                public_id: string;
+                severity: string;
+                action: string;
+                reason: string;
+                previous_outcome?: string;
+                outcome?: string;
+              }[];
+              openapi_diff?: {
+                available: boolean;
+                reason: string;
+                added: string[];
+                changed: string[];
+                removed: string[];
+              };
+              discovery_candidates?: { method: string; route: string; reason: string }[];
+              discovery_rationale?: string;
+              budget?: Record<string, unknown>;
+            };
+            return (
+              <>
+                {plan.openapi_diff ? (
+                  <div className="stack-sm">
+                    <h3>OpenAPI operation changes</h3>
+                    {!plan.openapi_diff.available ? (
+                      <p className="muted small">{plan.openapi_diff.reason}</p>
+                    ) : (
+                      <div className="bucket-grid">
+                        <div className="bucket">
+                          <span className="bucket-label">Added</span>
+                          <span className="bucket-value">{plan.openapi_diff.added.length}</span>
+                        </div>
+                        <div className="bucket">
+                          <span className="bucket-label">Changed</span>
+                          <span className="bucket-value">{plan.openapi_diff.changed.length}</span>
+                        </div>
+                        <div className="bucket">
+                          <span className="bucket-label">Removed</span>
+                          <span className="bucket-value">{plan.openapi_diff.removed.length}</span>
+                        </div>
+                      </div>
+                    )}
+                    {plan.openapi_diff.added.length + plan.openapi_diff.changed.length > 0 ? (
+                      <ul className="inline-code-list">
+                        {[...plan.openapi_diff.added, ...plan.openapi_diff.changed].map((operation) => (
+                          <li key={operation}>
+                            <Mono>{operation}</Mono>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {plan.discovery_rationale ? (
+                      <p className="small muted">{plan.discovery_rationale}</p>
+                    ) : null}
+                  </div>
+                ) : null}
+                <TableWrap label="Release scan candidates">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th scope="col">Finding</th>
+                        <th scope="col">Severity</th>
+                        <th scope="col">Planned action</th>
+                        <th scope="col">Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(plan.candidates ?? []).map((candidate) => (
+                        <tr key={candidate.public_id}>
+                          <td>{candidate.public_id}</td>
+                          <td>
+                            <SeverityBadge severity={candidate.severity} />
+                          </td>
+                          <td>{candidate.action.replace(/_/g, " ")}</td>
+                          <td>{candidate.reason || candidate.outcome || "queued within the plan"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </TableWrap>
+              </>
+            );
+          })()}
+        </Section>
+      ) : null}
+
+      {data.methodology.prerequisite_probe ? (
+        <Section
+          title="Prerequisite probes"
+          description="Identity and fixture checks performed by the worker before discovery."
+        >
+          <div className="grid-2">
+            <div>
+              <h3>Identities</h3>
+              {data.methodology.prerequisite_probe.accounts.length === 0 ? (
+                <p className="muted small">
+                  {data.methodology.prerequisite_probe.unauthenticated
+                    ? "Unauthenticated run (operator selected)."
+                    : "No authenticated identities selected."}
+                </p>
+              ) : (
+                <ul className="steps">
+                  {data.methodology.prerequisite_probe.accounts.map((account) => (
+                    <li key={account.name} className="small">
+                      <span className={`badge ${account.ok ? "badge-pass" : "badge-fail"}`}>
+                        {account.ok ? "pass" : "fail"}
+                      </span>{" "}
+                      {account.name} — {account.detail}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div>
+              <h3>Fixtures</h3>
+              {data.methodology.prerequisite_probe.fixtures.length === 0 ? (
+                <p className="muted small">No recipe fixtures were required.</p>
+              ) : (
+                <ul className="steps">
+                  {data.methodology.prerequisite_probe.fixtures.map((fixture) => (
+                    <li key={`${fixture.revision}-${fixture.name}`} className="small">
+                      <span className={`badge ${fixture.ok ? "badge-pass" : "badge-fail"}`}>
+                        {fixture.ok ? "pass" : "fail"}
+                      </span>{" "}
+                      recipe r{fixture.revision} · {fixture.name} — {fixture.detail}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </Section>
+      ) : null}
 
       <div className="two-col">
         <Section title="Surface inventory" description="Reaching a route during recon lists it here; testing requires a recorded check.">

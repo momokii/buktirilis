@@ -445,7 +445,7 @@ function RunWizard({
               {preview.preflight.ok ? "ready" : "blocked"}
             </span>
           </div>
-          <ul className="activity-list">
+          <ul className="activity-list" tabIndex={0} aria-label="Preflight check results">
             {checkList.map((check) => (
               <li key={check.code}>
                 <span

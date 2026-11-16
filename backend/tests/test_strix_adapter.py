@@ -98,6 +98,13 @@ def test_build_argv_is_structured_and_bounded(settings, tmp_path):
     assert "sh" not in argv and "-c" not in argv
     text = instruction.read_text().lower()
     assert "bearer" not in text and "lab." not in text
+    focused = write_instruction(
+        tmp_path,
+        profile_name="Web & API Access Control",
+        approved_origins=["https://staging.example"],
+        focus_routes=["GET /api/exports/{invoice_id}/pdf"],
+    )
+    assert "GET /api/exports/{invoice_id}/pdf" in focused.read_text()
 
 
 def test_live_preflight_reports_missing_model(settings, monkeypatch, fake_strix):

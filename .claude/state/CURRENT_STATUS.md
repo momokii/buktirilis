@@ -10,12 +10,14 @@ execution remains unobserved pending worker provisioning.
 - [x] Evidence provenance/redaction, automatic replay recipes, guided retests, review acceptance
 - [x] Release Scan planning, known-finding replay, discovery, comparison buckets
 - [x] Frozen PDF/CSV/JSON exports with redaction and historical stability
-- [x] 86 backend tests, 12 Playwright tests, axe scan, 1440 px and 390 px screenshots
-- [x] Fresh-database migrate + seed: 4 users, 1 project, 3 runs, 4 findings, 5 exports
+- [x] 92 backend tests, 14 Playwright tests, axe scan, 1440 px and 390 px screenshots
+- [x] Fresh-database migrate + seed: 4 users, 1 project, 3 runs, 4 findings, 4 exports
 - [x] Documentation: README, deployment, Strix contract, decisions, progress
 
 ## In Progress
 - [x] Demo pilot deployed via Compose on the Tailscale interface (http://100.124.184.116:8088)
+- [x] Worker prerequisite probes, evidence-decision history, surface-absent reasons, OpenAPI
+      discovery candidates, and the approved security guardrails
 - [ ] Live Strix pilot provisioning remains the next milestone.
 
 ## Blocked
@@ -23,8 +25,7 @@ execution remains unobserved pending worker provisioning.
   the implementation environment. Adapter is contract-tested with a fake CLI.
 - Sandbox network isolation is documented, not demonstrated on this host. Keep
   `LIVE_EXECUTION_ENABLED=false` until the three isolation probes pass on deployment.
-- Automated secret scanning / CI guardrails remain unconfigured (TASK-002) and need explicit
-  user confirmation before adding.
+- Security guardrails are configured and pass locally; GitHub Actions is unverified until a push.
 
 ## Open Questions
 - Which provider/model and Strix image digest the pilot worker will use.

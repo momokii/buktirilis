@@ -171,11 +171,21 @@ test("comparison shows regression and still-reproducible buckets with scope limi
   page,
 }) => {
   await signIn(page);
-  await page.getByRole("link", { name: /Atlas Billing/ }).first().click();
-  await page
-    .getByRole("navigation", { name: "Project sections" })
-    .getByRole("link", { name: "Compare", exact: true })
-    .click();
+  const projects = await (await page.request.get("/api/projects")).json();
+  const projectId = projects.items[0].id as string;
+  const runsResponse = await (await page.request.get(`/api/projects/${projectId}/runs`)).json();
+  const runs = runsResponse.items as { id: string; status: string; build: { label: string } }[];
+  const baseline = runs.find(
+    (run) => run.status === "completed" && run.build.label === "2024.10.2",
+  );
+  const current = runs.find(
+    (run) => run.status === "completed" && run.build.label === "2024.10.3",
+  );
+  expect(baseline).toBeTruthy();
+  expect(current).toBeTruthy();
+  await page.goto(
+    `/projects/${projectId}/compare?baseline=${baseline?.id}&current=${current?.id}`,
+  );
   await expect(page.getByRole("heading", { name: "Release comparison" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Regressed/ })).toBeVisible();
   await expect(page.getByText("Coverage comparison")).toBeVisible();
@@ -290,6 +300,41 @@ test("login restores the intended deep link", async ({ page }) => {
 
 test.describe("narrow layout", () => {
   test.use({ viewport: { width: 390, height: 844 } });
+
+  test("run wizard preflight is usable and axe-clean at 390px", async ({ page }) => {
+    await signIn(page);
+    await page.getByRole("link", { name: /Atlas Billing/ }).first().click();
+    await page
+      .getByRole("navigation", { name: "Project sections" })
+      .getByRole("link", { name: "Runs", exact: true })
+      .click();
+    await page.getByRole("button", { name: "New run" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Request an assessment run" })).toBeVisible();
+    await page.getByRole("button", { name: "Check prerequisites" }).click();
+    await expect(page.getByText("Preflight")).toBeVisible({ timeout: 20_000 });
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+    const axe = await new AxeBuilder({ page }).include("dialog").analyze();
+    const serious = axe.violations.filter(
+      (violation) => violation.impact === "serious" || violation.impact === "critical",
+    );
+    expect(serious, JSON.stringify(serious.map((violation) => violation.id))).toEqual([]);
+    await page.getByRole("button", { name: "Cancel" }).click();
+  });
+
+  test("admin page is usable at 390px", async ({ page }) => {
+    await signIn(page, "admin");
+    await page.getByRole("link", { name: "Admin", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Administration" })).toBeVisible();
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+    await page.screenshot({ path: "../docs/screenshots/admin-mobile.png", fullPage: true });
+  });
 
   test("report and finding remain usable without horizontal overflow", async ({ page }) => {
     await signIn(page);

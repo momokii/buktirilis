@@ -15,7 +15,7 @@ import logging
 import os
 import shutil
 import signal
-import subprocess
+import subprocess  # nosec B404
 import time
 import uuid
 from collections.abc import Callable
@@ -96,7 +96,7 @@ def live_preflight(settings: Settings) -> LivePreflight:
     )
     if binary:
         try:
-            version = subprocess.run(  # noqa: S603 - fixed argv, no user input
+            version = subprocess.run(  # noqa: S603  # nosec B603
                 [binary, "--version"],
                 capture_output=True,
                 text=True,
@@ -167,7 +167,13 @@ def build_argv(
     return argv
 
 
-def write_instruction(run_dir: Path, *, profile_name: str, approved_origins: list[str]) -> Path:
+def write_instruction(
+    run_dir: Path,
+    *,
+    profile_name: str,
+    approved_origins: list[str],
+    focus_routes: list[str] | None = None,
+) -> Path:
     """Trusted, worker-authored instruction file. Never includes credentials."""
     path = run_dir / "strix-instruction.md"
     path.write_text(
@@ -184,6 +190,15 @@ def write_instruction(run_dir: Path, *, profile_name: str, approved_origins: lis
                 "functions, and authentication prerequisites. Read-only testing only.",
                 "Record the surface, actors, approach, and evidence for every check.",
                 "Do not write secrets or tokens into findings or artifacts.",
+                *(
+                    [
+                        "",
+                        "Prioritize these added or changed operations during discovery:",
+                        *[f"- {route}" for route in (focus_routes or [])],
+                    ]
+                    if focus_routes
+                    else []
+                ),
             ]
         )
         + "\n",
@@ -235,12 +250,16 @@ def run_live(
     run_dir: Path,
     spec_path: Path | None,
     timeout_seconds: int,
+    focus_routes: list[str] | None = None,
     cancel_check: Callable[[], bool],
     heartbeat: Callable[[], None] | None = None,
 ) -> LiveResult:
     run_dir.mkdir(parents=True, exist_ok=True)
     instruction_path = write_instruction(
-        run_dir, profile_name=profile_name, approved_origins=approved_origins
+        run_dir,
+        profile_name=profile_name,
+        approved_origins=approved_origins,
+        focus_routes=focus_routes,
     )
     argv = build_argv(
         settings,
@@ -278,7 +297,7 @@ def run_live(
     cleanup_confirmed = True
     with stdout_path.open("wb") as out, stderr_path.open("wb") as err:
         try:
-            process = subprocess.Popen(  # noqa: S603 - structured argv, trusted config
+            process = subprocess.Popen(  # noqa: S603  # nosec B603
                 argv,
                 cwd=str(run_dir),
                 env=env,

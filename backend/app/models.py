@@ -21,6 +21,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Uuid,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -206,7 +207,14 @@ class Job(Base):
     __tablename__ = "jobs"
     __table_args__ = (
         Index("ix_jobs_claimable", "state", "available_at"),
-        UniqueConstraint("idempotency_key", name="uq_job_idempotency"),
+        # Only active work blocks an identical submission; a terminal job may be followed
+        # by a new run with the same configuration.
+        Index(
+            "uq_job_idempotency_active",
+            "idempotency_key",
+            unique=True,
+            postgresql_where=text("state in ('queued','running','cancel_requested')"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -430,6 +438,28 @@ class Observation(Base):
     detail: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
 
 
+class EvidenceDecision(Base):
+    """Append-only evidence assessment history; the finding row holds the current value."""
+
+    __tablename__ = "evidence_decisions"
+    __table_args__ = (Index("ix_evidence_decisions_finding", "finding_id", "created_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
+    finding_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("findings.id", ondelete="CASCADE"), nullable=False
+    )
+    status: Mapped[str] = mapped_column(String(30), nullable=False)
+    reason: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    actor_label: Mapped[str] = mapped_column(String(200), default="", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+
+
 class Evidence(Base, TimestampMixin):
     __tablename__ = "evidence"
     __table_args__ = (Index("ix_evidence_finding", "finding_id", "created_at"),)
@@ -623,6 +653,7 @@ __all__ = [
     "Base",
     "Build",
     "Evidence",
+    "EvidenceDecision",
     "ExportSnapshot",
     "Finding",
     "Job",

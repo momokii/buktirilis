@@ -34,6 +34,7 @@ from app.domain import (
 )
 from app.models import (
     Evidence,
+    EvidenceDecision,
     Finding,
     ManualReview,
     Observation,
@@ -43,6 +44,7 @@ from app.models import (
     RetestAttempt,
     Run,
     RunCheck,
+    Surface,
 )
 
 _WHITESPACE = re.compile(r"\s+")
@@ -125,6 +127,17 @@ def upsert_finding(
         first_run_id=run.id,
     )
     db.add(finding)
+    db.flush()
+    db.add(
+        EvidenceDecision(
+            project_id=project.id,
+            finding_id=finding.id,
+            status=finding.evidence_status,
+            reason="Initial evidence assessment recorded with the first observation.",
+            actor_label="ingest",
+            created_at=finding.created_at,
+        )
+    )
     db.flush()
     return finding
 
@@ -336,6 +349,8 @@ def newest_inconclusive(
 class RunFinding:
     finding: Finding
     state: FindingState
+    evidence_status: str
+    route_absent: bool = False
     run_checks: list[RunCheck] = field(default_factory=list)
     observations: list[Observation] = field(default_factory=list)
     latest_attempt: RetestAttempt | None = None
@@ -387,8 +402,32 @@ def run_findings(db: Session, run: Run) -> list[Finding]:
     )
 
 
+def evidence_status_as_of(db: Session, finding: Finding, as_of: datetime | None) -> str:
+    if as_of is None:
+        return finding.evidence_status
+    decision = db.execute(
+        select(EvidenceDecision)
+        .where(
+            EvidenceDecision.finding_id == finding.id,
+            EvidenceDecision.created_at <= as_of,
+        )
+        .order_by(EvidenceDecision.created_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    return decision.status if decision is not None else finding.evidence_status
+
+
+def _route_present(routes: list[str], scope_summary: str) -> bool:
+    scope = normalise_scope(scope_summary)
+    return any(normalise_scope(route) in scope for route in routes)
+
+
 def build_run_view(db: Session, run: Run) -> list[RunFinding]:
     snapshot_at = run.completed_at
+    routes = [
+        surface.route
+        for surface in db.execute(select(Surface).where(Surface.run_id == run.id)).scalars()
+    ]
     results: list[RunFinding] = []
     for finding in run_findings(db, run):
         state = state_for_build(db, finding.id, run.build_id, as_of=snapshot_at)
@@ -426,6 +465,8 @@ def build_run_view(db: Session, run: Run) -> list[RunFinding]:
             RunFinding(
                 finding=finding,
                 state=state,
+                evidence_status=evidence_status_as_of(db, finding, snapshot_at),
+                route_absent=bool(routes) and not _route_present(routes, finding.scope_summary),
                 run_checks=checks,
                 observations=observations,
                 latest_attempt=attempt,
@@ -480,15 +521,24 @@ def finding_row(item: RunFinding, *, run: Run | None = None) -> dict[str, Any]:
         "issue_class": finding.issue_class,
         "scope_summary": finding.scope_summary,
         "actors_summary": finding.actors_summary,
-        "evidence_status": finding.evidence_status,
-        "retest_method": eligibility(finding),
+        "evidence_status": item.evidence_status,
+        "retest_method": eligibility(finding, item.evidence_status),
         "disposition": finding.disposition,
         "verification": {
             "outcome": item.state.outcome.value,
             "source": item.state.source,
             "observed_at": _iso(item.state.observed_at),
-            "reason_code": item.state.reason_code,
-            "reason": item.state.reason_text,
+            "reason_code": (
+                "surface_absent"
+                if item.route_absent and item.state.outcome == VerificationOutcome.AWAITING_RETEST
+                else item.state.reason_code
+            ),
+            "reason": (
+                "The affected route was not present in this run's surface inventory; "
+                "absence is not evidence of a fix."
+                if item.route_absent and item.state.outcome == VerificationOutcome.AWAITING_RETEST
+                else item.state.reason_text
+            ),
             "stale": item.state.stale,
         },
         "latest_verification": (
@@ -525,10 +575,13 @@ def run_outcome_source(item: RunFinding) -> str | None:
     return None
 
 
-def eligibility(finding: Finding) -> str:
+def eligibility(finding: Finding, evidence_status: str | None = None) -> str:
     """Choose the retest path independently of the evidence decision."""
-    if finding.evidence_status == EvidenceStatus.NEEDS_VALIDATION:
+    status = evidence_status or finding.evidence_status
+    if status == EvidenceStatus.NEEDS_VALIDATION:
         return RetestMethod.PENDING_EVIDENCE_REVIEW.value
+    if finding.retest_method == RetestMethod.PENDING_EVIDENCE_REVIEW.value:
+        return RetestMethod.GUIDED.value
     return finding.retest_method
 
 
@@ -586,12 +639,18 @@ def comparison_findings(db: Session, baseline: Run | None, current: Run) -> list
     """Assign each comparable finding exactly one primary bucket."""
     current_rows = build_run_view(db, current)
     baseline_snapshot: dict[uuid.UUID, FindingState] = {}
+    baseline_evidence: dict[uuid.UUID, str] = {}
     if baseline is not None and baseline.completed_at is not None:
         for item in build_run_view(db, baseline):
             state = state_for_build(
                 db, item.finding.id, baseline.build_id, as_of=baseline.completed_at
             )
             baseline_snapshot[item.finding.id] = state
+            baseline_evidence[item.finding.id] = item.evidence_status
+    current_routes = [
+        surface.route
+        for surface in db.execute(select(Surface).where(Surface.run_id == current.id)).scalars()
+    ]
 
     seen: set[uuid.UUID] = set()
     rows: list[dict[str, Any]] = []
@@ -616,7 +675,11 @@ def comparison_findings(db: Session, baseline: Run | None, current: Run) -> list
             finding = db.get(Finding, finding_id)
             if finding is None:
                 continue
-            bucket, reason = _absent_bucket(finding, base_state)
+            evidence_status = baseline_evidence.get(finding.id, finding.evidence_status)
+            route_absent = bool(current_routes) and not _route_present(
+                current_routes, finding.scope_summary
+            )
+            bucket, reason = _absent_bucket(finding, base_state, evidence_status, route_absent)
             rows.append(
                 {
                     "id": str(finding.id),
@@ -626,15 +689,19 @@ def comparison_findings(db: Session, baseline: Run | None, current: Run) -> list
                     "issue_class": finding.issue_class,
                     "scope_summary": finding.scope_summary,
                     "actors_summary": finding.actors_summary,
-                    "evidence_status": finding.evidence_status,
-                    "retest_method": eligibility(finding),
+                    "evidence_status": evidence_status,
+                    "retest_method": eligibility(finding, evidence_status),
                     "disposition": finding.disposition,
                     "verification": {
                         "outcome": VerificationOutcome.AWAITING_RETEST.value,
                         "source": None,
                         "observed_at": None,
-                        "reason_code": "not_tested_in_run",
-                        "reason": "Not tested on this build",
+                        "reason_code": "surface_absent" if route_absent else "not_tested_in_run",
+                        "reason": (
+                            "The affected route was not present in this run's surface inventory."
+                            if route_absent
+                            else "Not tested on this build"
+                        ),
                         "stale": False,
                     },
                     "latest_verification": None,
@@ -657,14 +724,25 @@ def comparison_findings(db: Session, baseline: Run | None, current: Run) -> list
     return rows
 
 
-def _absent_bucket(finding: Finding, base_state: FindingState) -> tuple[ComparisonBucket, str]:
-    if finding.evidence_status == EvidenceStatus.NEEDS_VALIDATION:
+def _absent_bucket(
+    finding: Finding,
+    base_state: FindingState,
+    evidence_status: str,
+    route_absent: bool,
+) -> tuple[ComparisonBucket, str]:
+    if evidence_status == EvidenceStatus.NEEDS_VALIDATION:
         return (
             ComparisonBucket.NEEDS_VALIDATION,
             "Evidence needs validation before a verdict can be compared",
         )
     if finding.disposition != "open":
         return (ComparisonBucket.INCOMPARABLE, f"Finding is marked {finding.disposition}")
+    if route_absent:
+        return (
+            ComparisonBucket.AWAITING_VERIFICATION,
+            "The affected route was not present in this run's surface inventory; "
+            "absence is not evidence of a fix",
+        )
     return (
         ComparisonBucket.AWAITING_VERIFICATION,
         "No comparable evidence on this build; absence is not evidence of a fix",
@@ -675,7 +753,7 @@ def _bucket(item: RunFinding, base_state: FindingState | None) -> tuple[Comparis
     finding = item.finding
     if finding.disposition != "open":
         return (ComparisonBucket.INCOMPARABLE, f"Finding is marked {finding.disposition}")
-    if finding.evidence_status == EvidenceStatus.NEEDS_VALIDATION:
+    if item.evidence_status == EvidenceStatus.NEEDS_VALIDATION:
         return (
             ComparisonBucket.NEEDS_VALIDATION,
             "Evidence needs validation; the verification outcome is not yet reliable",
@@ -701,10 +779,11 @@ def _bucket(item: RunFinding, base_state: FindingState | None) -> tuple[Comparis
             ComparisonBucket.STILL_REPRODUCIBLE,
             "Previously known and reproduced on this build",
         )
-    if finding.evidence_status == EvidenceStatus.NEEDS_VALIDATION:
+    if item.route_absent:
         return (
-            ComparisonBucket.NEEDS_VALIDATION,
-            "Evidence needs validation before a verdict can be compared",
+            ComparisonBucket.AWAITING_VERIFICATION,
+            "The affected route was not present in this run's surface inventory; "
+            "absence is not evidence of a fix",
         )
     return (
         ComparisonBucket.AWAITING_VERIFICATION,

@@ -29,7 +29,8 @@ interface, a FastAPI API, a PostgreSQL-backed worker, and a synthetic staging la
   submission.
 - **Evidence, not claims.** Findings carry expected vs observed behavior, ordered steps,
   attribution, and sanitized HTTP evidence. Verification is derived from accepted
-  observations scoped to a build — never from a mutable status flag.
+  observations scoped to a build — never from a mutable status flag. Worker-side probes
+  check selected identities and recipe fixtures before discovery and fail closed.
 - **Two retest paths.** Approved read-only replay recipes execute through a constrained
   runner with an owner positive control. Cases that need browser steps, two actors, or a
   state change use a guided package and reviewer acceptance.
@@ -43,6 +44,8 @@ interface, a FastAPI API, a PostgreSQL-backed worker, and a synthetic staging la
 - **Safe self-hosted operation.** Server-side role checks, CSRF-protected cookie sessions,
   Argon2id passwords, encrypted test credentials, redaction on the way in, target allowlists,
   redirect re-validation, and a worker lease that never silently re-runs uncertain work.
+  Dependency audits, static analysis, baseline secret scanning, and Trivy image scanning run
+  in CI; see `docs/security-guardrails.md`.
 
 ## Architecture
 
@@ -214,16 +217,16 @@ cd web && npx playwright install chromium
 
 Verified in this environment (see [docs/progress.md](docs/progress.md) for exact output):
 
-- Backend: **86 tests** covering policy/OpenAPI overrides, redaction, replay assertions,
+- Backend: **92 tests** covering policy/OpenAPI overrides, redaction, replay assertions,
   retest/review semantics, verdict derivation, comparison buckets, pipeline, cancellation,
   revoked access, worker lease reconciliation, exports, API/CSRF/isolation, and the Strix
   subprocess contract.
-- Frontend: TypeScript build and **12 Playwright tests** at 1440 px and 390 px, including
+- Frontend: TypeScript build and **14 Playwright tests** at 1440 px and 390 px, including
   keyboard tab navigation, both retest paths, frozen export download, comparison, and an
   axe-core scan with no serious/critical violations.
 - PDF export: 6 pages for the demo release-scan snapshot; CSV and JSON parse and agree.
 - Fresh database: migrate + seed creates 4 users, 1 project, 3 runs, 4 findings, and
-  5 frozen exports without a model provider.
+  4 frozen exports without a model provider.
 
 ## Repository map
 
@@ -232,7 +235,7 @@ Verified in this environment (see [docs/progress.md](docs/progress.md) for exact
 | `backend/app/services/` | Policy/OpenAPI, replay runner, recipes, retests, findings/comparison, ingest, releases, runs/queue, pipeline, exports, Strix adapter, demo seed |
 | `backend/app/routers/` | Auth, admin, projects/builds, runs/reports, findings/retests, exports |
 | `backend/migrations/` | Alembic schema (ordered, cycle-safe initial migration + follow-up) |
-| `backend/tests/` | 86 tests, including a real local HTTP lab fixture |
+| `backend/tests/` | 92 tests, including a real local HTTP lab fixture |
 | `lab/` | Synthetic Atlas Billing staging API with three deployments |
 | `web/src/` | React app, accessible UI primitives, report/finding/compare screens |
 | `web/e2e/` | Playwright browser and accessibility tests |

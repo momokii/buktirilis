@@ -2,6 +2,10 @@
 FROM python:3.12-slim AS runtime
 
 COPY --from=ghcr.io/astral-sh/uv:0.9.30 /uv /uvx /bin/
+RUN apt-get update \
+    && apt-get -y upgrade \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/srv/.venv/bin:$PATH" \

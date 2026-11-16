@@ -73,9 +73,9 @@ PDF/CSV/JSON frozen exports, release comparison, and both retest paths. Enforced
 roles, CSRF, login rate limits, encrypted test credentials, target allowlists, redirect
 re-validation, and worker lease reconciliation.
 
-Verification: 86 backend tests (real HTTP against the lab), ruff and mypy clean, web
-typecheck/build clean, 12 Playwright tests at 1440 px and 390 px including an axe-core scan,
-fresh-database migrate + seed producing 3 runs and 5 exports, PDF 6 pages with limitations,
+Verification: 92 backend tests (real HTTP against the lab), ruff and mypy clean, web
+typecheck/build clean, 14 Playwright tests at 1440 px and 390 px including an axe-core scan,
+fresh-database migrate + seed producing 3 runs and 4 exports, PDF 6 pages with limitations,
 CSV/JSON agreeing and free of credential values, and compose config valid for base + demo
 profiles. Remaining: live Strix execution and sandbox isolation were not observed; the
 adapter is contract-tested with a fake CLI and live mode is disabled by default.

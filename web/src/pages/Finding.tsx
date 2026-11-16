@@ -1019,6 +1019,19 @@ function ReviewEvidenceSection({
             The evidence is supported. {missing ? "The reproduction procedure still needs completion." : "Verification history is kept with its original build."}
           </p>
         )}
+        {finding.evidence_decisions.length > 0 ? (
+          <details className="raw-details" style={{ marginTop: "0.5rem" }}>
+            <summary>Evidence decision history ({finding.evidence_decisions.length})</summary>
+            <ul className="steps small">
+              {finding.evidence_decisions.map((decision) => (
+                <li key={`${decision.at}-${decision.status}`}>
+                  <strong>{decision.status.replace(/_/g, " ")}</strong> by {decision.actor} ·{" "}
+                  <RelativeTime value={decision.at} /> — {decision.reason}
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
         {finding.capabilities.can_operate ? (
           <div className="stack-sm" style={{ marginTop: "0.6rem" }}>
             <Field label="Reviewer note" htmlFor="evidence-note">

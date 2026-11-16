@@ -31,9 +31,10 @@ strix -n
 - `-n` (headless) is required. `--fail-on` is omitted, so exit `2` means any reported
   finding.
 - Depth maps directly: Quick → `quick`, Standard → `standard`. Deep is not offered.
-- The instruction file contains the profile focus and approved origins only. Credentials are
-  never written into it; authenticated exploration would require a separate, documented,
-  short-lived credential path.
+- The instruction file contains the profile focus, approved origins, and bounded focus routes
+  (added/changed OpenAPI operations and operator-selected paths). Credentials are never written
+  into it; authenticated exploration would require a separate, documented, short-lived
+  credential path.
 - API specs are parsed offline, validated against the project origin allowlist, stripped of
   all server overrides, and written as a local sanitized document. A spec host never
   authorizes a destination.

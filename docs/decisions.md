@@ -37,7 +37,8 @@ per current finding, with needs-validation and incomparable cases separated.
 
 **Decision.** Store each evidence assessment in `evidence_decisions`; derive the status as of a
 run snapshot from the entries at that time. The mutable `findings.evidence_status` remains the
-current value for the detail screen.
+current value for the detail screen. The table is append-only after the one-time backfill;
+subsequent corrective migrations only relabel the synthetic migration entries.
 
 **Why.** A review after a run must not rewrite a historical comparison. Exports freeze the same
 snapshot. The pre-migration backfill is explicitly marked as migration-time data, not a
@@ -96,8 +97,10 @@ The requester, project access, and current target policy are re-checked before d
 handling, and revocation to prevent queued work from running. Automatic retry would risk
 two engines scanning the same target.
 
-**Consequences.** A restarted worker does not resume old jobs; an operator must explicitly
-request a new run. Interrupted runs keep partial artifacts with an incomplete label.
+**Consequences.** Idempotency is enforced only while a job is queued/running: resubmitting an
+identical configuration after a terminal run creates a new run, which is the intended retry path.
+A restarted worker does not resume old jobs; an operator must explicitly request a new run.
+Interrupted runs keep partial artifacts with an incomplete label.
 
 ## ADR-007 — Loopback is a policy-controlled exception
 

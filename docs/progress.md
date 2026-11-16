@@ -13,7 +13,7 @@ Browser UI: React/TypeScript. Backend/worker: Python/FastAPI. DB: PostgreSQL.
 | M4 | Frozen PDF/CSV/JSON exports with snapshots | Completed | `0b9d286` |
 | M5 | Worker, live Strix adapter, synthetic lab, isolation preflight | Adapter implemented; live execution **not observed** | `a0eeedb` + `0b9d286` |
 | M6 | Release Scan, discovery, comparison, final browser verification | Completed (demo path) | `0b9d286` + `27fedbe` |
-| — | Hardening and final documentation | Completed | `ca9abd7`, `8c1de93`, `8575884` |
+| — | Hardening and final documentation | Completed | `ca9abd7`, `8c1de93`, `8575884`, `df9d798` |
 
 ## What is delivered
 
@@ -157,13 +157,18 @@ Backend tests increased from 81 to **95**; browser tests from 11 to **14**.
 - **Pre-migration findings have no historical evidence-review timeline.** Existing findings
   backfilled before the evidence-decisions table fall back to current status before the
   migration timestamp; this is recorded in the migration and ADR-002a.
+- **Guided recipe editing by a reviewer** is not a separate form; reviewers accept/request
+  changes and can document evidence, but they cannot rewrite guided steps. This remains a
+  product-scope gap beyond the current acceptance paths.
+- **Container rebuild reproducibility** is traded for clean image scans because runtime images
+  apply distribution security upgrades; rebuild and rescan per release.
 - **Live authenticated exploration** remains disabled; the worker prerequisite probe verifies
   identities without sending them to the model.
 
 ## Current deployment (demo pilot)
 
 - URL: `http://100.124.184.116:8088` (Tailscale interface only; not LAN/public)
-- Deployed code: `8575884` (hardening backlog); images rebuilt and scanned after the change
+- Deployed code: `df9d798` (second-review remediation); images rebuilt and scanned after the change
 - Mode: `APP_ENV=staging`, demo records, web bootstrap disabled, API docs disabled,
   live execution disabled. `COOKIE_SECURE=false` because the tailnet origin is plain HTTP;
   path is WireGuard-encrypted. Prefer `tailscale serve` + TLS to enable Secure cookies.

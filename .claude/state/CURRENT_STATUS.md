@@ -42,6 +42,6 @@ execution remains unobserved pending worker provisioning.
 - No real secrets are committed; demo credentials are generated into a gitignored file.
 
 ## Last Updated
-2026-11-16: second review fixes complete; 95 backend and 14 browser tests pass, audits and
-image scan clean. Demo pilot redeployed; live execution and isolation remain unverified
-pending a provisioned worker.
+2026-11-16: second review fixes complete (commit df9d798); 95 backend and 14 browser tests
+pass, audits/image scan clean. Demo pilot redeployed; live execution and isolation remain
+unverified pending a provisioned worker.

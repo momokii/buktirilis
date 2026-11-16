@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import pytest
+from fastapi import HTTPException
+
 from app.models import OpenApiDocument
 from app.services.releases import build_release_plan, openapi_diff
+from app.services.runs import normalise_discovery_routes
 from tests.helpers import make_run
 
 
@@ -73,6 +77,19 @@ def test_openapi_diff_finds_added_changed_and_removed_operations(db, lab_project
     assert diff["added"] == ["GET /api/exports/{invoice_id}/pdf"]
     assert diff["changed"] == ["GET /api/invoices/{invoice_id}"]
     assert diff["removed"] == ["GET /api/old"]
+
+
+def test_discovery_route_validation_rejects_absolute_and_injected_values():
+    assert normalise_discovery_routes(["/api/ok", "/api/ok"]) == ["/api/ok"]
+    for bad in [
+        "https://evil.example",
+        "/api/../admin",
+        "/api/ok\n- injected",
+        "/api/with space",
+        "/" + "a" * 400,
+    ]:
+        with pytest.raises(HTTPException):
+            normalise_discovery_routes([bad])
 
 
 def test_release_plan_records_operator_selected_routes(db, lab_project):

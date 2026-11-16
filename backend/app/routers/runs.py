@@ -34,7 +34,13 @@ from app.services.profiles import (
     get_profile,
     profile_as_json,
 )
-from app.services.runs import cancel_run, create_run, preflight, run_progress
+from app.services.runs import (
+    cancel_run,
+    create_run,
+    normalise_discovery_routes,
+    preflight,
+    run_progress,
+)
 
 ROUTER = APIRouter(prefix="/projects/{project_id}", tags=["runs"])
 
@@ -135,8 +141,10 @@ def preview_preflight(
     except KeyError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     limits = depth_config(payload.depth)
+    discovery_routes = normalise_discovery_routes(payload.discovery_routes)
     return {
         "preflight": result.as_dict(),
+        "discovery_routes": discovery_routes,
         "profile": profile_as_json(profile),
         "depth": {
             "name": payload.depth,

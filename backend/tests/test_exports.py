@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 
-from app.models import Evidence, ExportSnapshot
+from app.models import Evidence, EvidenceDecision, ExportSnapshot
 from app.services.evidence import create_evidence
 from app.services.exports import create_export, render_pdf
 from tests.helpers import add_observation, make_finding, make_run
@@ -189,6 +189,38 @@ def test_frozen_snapshot_does_not_change_after_later_retest(db, lab_project, set
     assert refreshed[0].payload["findings"][0]["verification"]["outcome"] == "still_reproducible"
     assert refreshed[0].payload["latest_verification"]
     assert refreshed[0].payload["latest_verification"][0]["outcome"] == "fix_verified"
+
+
+def test_export_evidence_decisions_are_snapshot_scoped(db, lab_project, settings):
+    run, finding = _report(db, lab_project, settings)
+    db.add(
+        EvidenceDecision(
+            project_id=lab_project.project.id,
+            finding_id=finding.id,
+            status="supported",
+            reason="Recorded before the run snapshot",
+            actor_label="Reviewer",
+            created_at=NOW - timedelta(days=1),
+        )
+    )
+    db.add(
+        EvidenceDecision(
+            project_id=lab_project.project.id,
+            finding_id=finding.id,
+            status="needs_validation",
+            reason="Recorded after the run snapshot",
+            actor_label="Reviewer",
+            created_at=NOW + timedelta(days=1),
+        )
+    )
+    db.commit()
+    exports = create_export(
+        db, project=lab_project.project, run=run, fmt="json", actor=lab_project.viewer
+    )
+    db.commit()
+    decisions = exports[0].payload["findings"][0]["evidence_decisions"]
+    assert len(decisions) == 1
+    assert decisions[0]["reason"] == "Recorded before the run snapshot"
 
 
 def test_filtered_export_is_labelled_as_subset(db, lab_project, settings):

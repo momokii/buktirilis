@@ -48,7 +48,7 @@ real task. Do not install a stack merely because the queue contains foundation w
 - [x] Approved scope, builds, OpenAPI validation, identity observation/attestation
 - [x] Run lifecycle, preflight, demo fixtures, worker lease, cancellation, interruption
 - [x] Evidence, replay recipes, guided retests, review acceptance, comparison, exports
-- [x] 95 backend tests, 14 Playwright tests, axe scan, fresh-seed and PDF/CSV/JSON verification
+- [x] 97 backend tests, 14 Playwright tests, axe scan, fresh-seed and PDF/CSV/JSON verification
 - [x] Documentation and reproducible demo walkthrough
 - [x] Security guardrails: pip-audit, npm audit, Bandit, detect-secrets baseline, Trivy, pinned CI
 - [x] Worker prerequisite probes, evidence-decision history, surface-absent reasons, OpenAPI diff

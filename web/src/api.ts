@@ -182,7 +182,7 @@ export interface ReportFinding {
   scope_summary: string;
   actors_summary: string;
   evidence_status: "supported" | "needs_validation";
-  evidence_decisions: { status: string; reason: string; actor: string; at: string }[];
+  evidence_decisions?: { status: string; reason: string; actor: string; at: string }[];
   retest_method: RetestMethod;
   disposition: string;
   marked_ready?: boolean;

@@ -286,35 +286,26 @@ def _include(finding: Finding, filters: dict[str, Any]) -> bool:
 def _finding_snapshot(db: Session, *, run: Run, item, baseline: Run | None) -> dict[str, Any]:
     finding = item.finding
     build = db.get(Build, run.build_id)
+    cutoff = run.completed_at
     evidence = list(
         db.execute(
             select(Evidence).where(Evidence.finding_id == finding.id).order_by(Evidence.created_at)
         ).scalars()
     )
-    attempts = list(
-        db.execute(
-            select(RetestAttempt)
-            .where(
-                RetestAttempt.finding_id == finding.id,
-                RetestAttempt.build_id == run.build_id,
-            )
-            .order_by(RetestAttempt.requested_at)
-        ).scalars()
+    attempts_query = select(RetestAttempt).where(
+        RetestAttempt.finding_id == finding.id,
+        RetestAttempt.build_id == run.build_id,
     )
-    history = list(
-        db.execute(
-            select(Observation)
-            .where(Observation.finding_id == finding.id)
-            .order_by(Observation.observed_at)
-        ).scalars()
-    )
-    decisions = list(
-        db.execute(
-            select(EvidenceDecision)
-            .where(EvidenceDecision.finding_id == finding.id)
-            .order_by(EvidenceDecision.created_at)
-        ).scalars()
-    )
+    if cutoff is not None:
+        attempts_query = attempts_query.where(RetestAttempt.requested_at <= cutoff)
+    attempts = list(db.execute(attempts_query.order_by(RetestAttempt.requested_at)).scalars())
+    history_query = select(Observation).where(Observation.finding_id == finding.id)
+    decision_query = select(EvidenceDecision).where(EvidenceDecision.finding_id == finding.id)
+    if cutoff is not None:
+        history_query = history_query.where(Observation.observed_at <= cutoff)
+        decision_query = decision_query.where(EvidenceDecision.created_at <= cutoff)
+    history = list(db.execute(history_query.order_by(Observation.observed_at)).scalars())
+    decisions = list(db.execute(decision_query.order_by(EvidenceDecision.created_at)).scalars())
     observations = []
     for observation in history:
         observation_build = db.get(Build, observation.build_id)

@@ -43,7 +43,7 @@ container on `127.0.0.1:55432`, lab on `127.0.0.1:8099`.
 | Backend lint | `cd backend && .venv/bin/ruff check app tests` | **Passed** |
 | Backend format | `cd backend && .venv/bin/ruff format --check app tests` | **Passed** |
 | Backend types | `cd backend && .venv/bin/mypy app` | **Passed** (38 files) |
-| Backend tests | `cd backend && .venv/bin/python -m pytest` | **95 passed** |
+| Backend tests | `cd backend && .venv/bin/python -m pytest` | **97 passed** |
 | Web types | `cd web && npm run typecheck` | **Passed** |
 | Web build | `cd web && npm run build` | **Passed** (production bundle) |
 | Browser E2E | `cd web && npx playwright test` | **14 passed** (deployed tailnet URL, 1440 + 390) |
@@ -138,7 +138,7 @@ Findings fixed and covered by tests:
     synthetic decisions at migration time and labels them; pre-migration comparisons fall
     back to current state and are documented as a limitation.
 
-Backend tests increased from 81 to **95**; browser tests from 11 to **14**.
+Backend tests increased from 81 to **97**; browser tests from 11 to **14**.
 
 ## Blocked / not verified
 
@@ -157,6 +157,10 @@ Backend tests increased from 81 to **95**; browser tests from 11 to **14**.
 - **Pre-migration findings have no historical evidence-review timeline.** Existing findings
   backfilled before the evidence-decisions table fall back to current status before the
   migration timestamp; this is recorded in the migration and ADR-002a.
+- **Evidence retention is not configurable yet.** Persistence is bounded by the artifact volume
+  and access checks, but no age/count retention policy is enforced.
+- **Guided-step editing is reviewer-workflow limited.** Reviewers can accept, request changes,
+  and document evidence, but cannot rewrite guided steps in-app.
 - **Guided recipe editing by a reviewer** is not a separate form; reviewers accept/request
   changes and can document evidence, but they cannot rewrite guided steps. This remains a
   product-scope gap beyond the current acceptance paths.
@@ -182,7 +186,10 @@ Backend tests increased from 81 to **95**; browser tests from 11 to **14**.
 - TASK-002 security guardrails: DONE locally (audits/static/secret/image clean,
   pinned CI workflow added); CI execution remains unverified until a push.
 - TASK-003 live Strix pilot: BLOCKED on external worker/model/target prerequisites.
-- Product/demo release: complete; no code-side backlog items remain.
+- Product/demo release: complete for the documented acceptance paths; no known code-side
+  blocker for the demo. Two product-scope gaps remain: guided-step editing by a reviewer and
+  configurable evidence retention. CI is unverified remotely; live Strix/isolation remain
+  externally blocked.
 
 ## Next action
 

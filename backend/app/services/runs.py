@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -162,16 +163,26 @@ def surface_inventory(db: Session, build: Build, profile_code: str, version: int
     return surfaces
 
 
+_DISCOVERY_ROUTE = re.compile(r"^/[A-Za-z0-9._~{}/?=&%\-]*$")
+
+
 def normalise_discovery_routes(routes: list[str] | None) -> list[str]:
     cleaned: list[str] = []
     for raw in routes or []:
         route = str(raw).strip()
         if not route:
             continue
-        if len(route) > 300 or not route.startswith("/") or "://" in route or ".." in route:
+        if (
+            len(route) > 300
+            or not _DISCOVERY_ROUTE.fullmatch(route)
+            or "://" in route
+            or ".." in route
+        ):
             raise HTTPException(
                 status_code=422,
-                detail="Discovery routes must be relative paths inside the approved scope.",
+                detail=(
+                    "Discovery routes must be bounded relative paths inside the approved scope."
+                ),
             )
         if route not in cleaned:
             cleaned.append(route)
@@ -589,6 +600,7 @@ def create_run(
     discovery_routes: list[str] | None = None,
 ) -> tuple[Run, bool]:
     """Create a queued run. Returns ``(run, created)`` for idempotent submissions."""
+    discovery_routes = normalise_discovery_routes(discovery_routes)
     pre = preflight(
         db,
         settings=settings,

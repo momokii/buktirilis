@@ -73,7 +73,7 @@ PDF/CSV/JSON frozen exports, release comparison, and both retest paths. Enforced
 roles, CSRF, login rate limits, encrypted test credentials, target allowlists, redirect
 re-validation, and worker lease reconciliation.
 
-Verification: 95 backend tests (real HTTP against the lab), ruff and mypy clean, web
+Verification: 97 backend tests (real HTTP against the lab), ruff and mypy clean, web
 typecheck/build clean, 14 Playwright tests at 1440 px and 390 px including an axe-core scan,
 fresh-database migrate + seed producing 3 runs and 4 exports, PDF 6 pages with limitations,
 CSV/JSON agreeing and free of credential values, and compose config valid for base + demo
@@ -102,7 +102,7 @@ snapshot-as-of comparison semantics, explicit surface-absent reasons, OpenAPI op
 discovery candidates, active-only job idempotency, and the approved security guardrails
 (pip-audit, npm audit, Bandit, detect-secrets baseline, Trivy image scan, pinned CI actions).
 Dependency upgrades cleared known CVEs; image scans are clean. Research and guardrail
-runbooks added. Final checks: 95 backend tests, 14 browser tests against the deployed tailnet
+runbooks added. Final checks: 97 backend tests, 14 browser tests against the deployed tailnet
 URL, fresh-database seed, and restart persistence. Live Strix execution remains blocked on
 worker/model/target provisioning.
 
@@ -110,5 +110,5 @@ worker/model/target provisioning.
 Addressed the two-axis review findings: operator-selected discovery routes end to end,
 baseline fixture probes, blocked-scenario reporting, segment-aware route matching, safer
 probe error handling, corrected evidence backfill timestamps, active-only idempotency,
-and added tests for the passing probe/operator-route/template paths. Final checks: 95
+and added tests for the passing probe/operator-route/template paths. Final checks: 97
 backend tests, 14 browser tests against the deployed tailnet URL, image scan clean.

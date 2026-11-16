@@ -21,7 +21,7 @@ make image-scan      # Trivy HIGH/CRITICAL on the built api/web images
 | Python dependency audit | `cd backend && .venv/bin/pip-audit` | **No known vulnerabilities** after upgrading FastAPI 0.163.1, Starlette 1.10.0, python-multipart 0.0.33, cryptography 50.0.0, pytest 9.0.3, pypdf 6.21.4 |
 | Node dependency audit | `cd web && npm audit --audit-level=high` | **0 vulnerabilities** |
 | Python static analysis | `cd backend && .venv/bin/bandit -q -r app` | **0 findings** after replacing `xml.sax.escape`, removing `assert` on runtime invariants, and scoping the controlled subprocess calls |
-| Secret scan | `detect-secrets-hook --baseline .secrets.baseline $(git ls-files)` | **Passed**; baseline contains 11 reviewed false positives (fake local DB URLs, test passwords, migration revision hex) |
+| Secret scan | `detect-secrets-hook --baseline .secrets.baseline $(git ls-files)` | **Passed**; baseline contains 20 reviewed false positives over 12 files (fake local/CI DB URLs, test passwords, migration revision hex) |
 | Secret scanner negative case | synthetic AWS-key fixture | **Failed as required** (exit 1); fixture deleted, not committed |
 | Image scan | `make image-scan` | **Clean** for `buktirilis-api`, `buktirilis-web`, and `buktirilis-lab` at HIGH/CRITICAL after rebuilding with the updated dependencies/base packages |
 | CI | `.github/workflows/ci.yml` | **Not yet executed remotely**; pinned action SHAs and least-privilege permissions |
@@ -51,7 +51,7 @@ its location only.
 
 `.github/workflows/ci.yml` runs:
 
-1. Backend: frozen install, Ruff, format check, mypy, 95 tests against PostgreSQL.
+1. Backend: frozen install, Ruff, format check, mypy, 97 tests against PostgreSQL.
 2. Frontend: `npm ci`, type check, production build.
 3. Security: pip-audit, npm audit, Bandit, secret scan, image build, Trivy image scan.
 

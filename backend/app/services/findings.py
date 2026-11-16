@@ -417,17 +417,48 @@ def evidence_status_as_of(db: Session, finding: Finding, as_of: datetime | None)
     return decision.status if decision is not None else finding.evidence_status
 
 
+SURFACE_ABSENT_REASON = (
+    "The affected route was not present in this run's surface inventory; "
+    "absence is not evidence of a fix."
+)
+
+_METHOD_PREFIX = re.compile(r"^\s*(?:GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS)\s+", re.I)
+
+
+def _path_segments(value: str) -> list[str]:
+    path = value.split("?", 1)[0].strip()
+    path = _METHOD_PREFIX.sub("", path)
+    return [segment for segment in path.strip("/").split("/") if segment]
+
+
+def _segments_match(route: list[str], target: list[str]) -> bool:
+    if len(route) != len(target):
+        return False
+    for left, right in zip(route, target, strict=True):
+        if left.startswith("{") and left.endswith("}"):
+            continue
+        if right.startswith("{") and right.endswith("}"):
+            continue
+        if left != right:
+            return False
+    return True
+
+
+def run_surface_routes(db: Session, run_id: uuid.UUID) -> list[str]:
+    return [
+        surface.route
+        for surface in db.execute(select(Surface).where(Surface.run_id == run_id)).scalars()
+    ]
+
+
 def _route_present(routes: list[str], scope_summary: str) -> bool:
-    scope = normalise_scope(scope_summary)
-    return any(normalise_scope(route) in scope for route in routes)
+    target = _path_segments(scope_summary)
+    return any(_segments_match(_path_segments(route), target) for route in routes)
 
 
 def build_run_view(db: Session, run: Run) -> list[RunFinding]:
     snapshot_at = run.completed_at
-    routes = [
-        surface.route
-        for surface in db.execute(select(Surface).where(Surface.run_id == run.id)).scalars()
-    ]
+    routes = run_surface_routes(db, run.id)
     results: list[RunFinding] = []
     for finding in run_findings(db, run):
         state = state_for_build(db, finding.id, run.build_id, as_of=snapshot_at)
@@ -534,8 +565,7 @@ def finding_row(item: RunFinding, *, run: Run | None = None) -> dict[str, Any]:
                 else item.state.reason_code
             ),
             "reason": (
-                "The affected route was not present in this run's surface inventory; "
-                "absence is not evidence of a fix."
+                SURFACE_ABSENT_REASON
                 if item.route_absent and item.state.outcome == VerificationOutcome.AWAITING_RETEST
                 else item.state.reason_text
             ),
@@ -647,10 +677,7 @@ def comparison_findings(db: Session, baseline: Run | None, current: Run) -> list
             )
             baseline_snapshot[item.finding.id] = state
             baseline_evidence[item.finding.id] = item.evidence_status
-    current_routes = [
-        surface.route
-        for surface in db.execute(select(Surface).where(Surface.run_id == current.id)).scalars()
-    ]
+    current_routes = run_surface_routes(db, current.id)
 
     seen: set[uuid.UUID] = set()
     rows: list[dict[str, Any]] = []
@@ -740,8 +767,7 @@ def _absent_bucket(
     if route_absent:
         return (
             ComparisonBucket.AWAITING_VERIFICATION,
-            "The affected route was not present in this run's surface inventory; "
-            "absence is not evidence of a fix",
+            SURFACE_ABSENT_REASON,
         )
     return (
         ComparisonBucket.AWAITING_VERIFICATION,
@@ -782,8 +808,7 @@ def _bucket(item: RunFinding, base_state: FindingState | None) -> tuple[Comparis
     if item.route_absent:
         return (
             ComparisonBucket.AWAITING_VERIFICATION,
-            "The affected route was not present in this run's surface inventory; "
-            "absence is not evidence of a fix",
+            SURFACE_ABSENT_REASON,
         )
     return (
         ComparisonBucket.AWAITING_VERIFICATION,

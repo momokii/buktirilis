@@ -311,6 +311,9 @@ test.describe("narrow layout", () => {
     await page.getByRole("button", { name: "New run" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Request an assessment run" })).toBeVisible();
+    await page
+      .getByLabel("Operator-selected discovery routes (optional)")
+      .fill("/api/operator-selected");
     await page.getByRole("button", { name: "Check prerequisites" }).click();
     await expect(page.getByText("Preflight")).toBeVisible({ timeout: 20_000 });
     const overflow = await page.evaluate(

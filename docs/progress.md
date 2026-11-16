@@ -43,7 +43,7 @@ container on `127.0.0.1:55432`, lab on `127.0.0.1:8099`.
 | Backend lint | `cd backend && .venv/bin/ruff check app tests` | **Passed** |
 | Backend format | `cd backend && .venv/bin/ruff format --check app tests` | **Passed** |
 | Backend types | `cd backend && .venv/bin/mypy app` | **Passed** (38 files) |
-| Backend tests | `cd backend && .venv/bin/python -m pytest` | **92 passed** |
+| Backend tests | `cd backend && .venv/bin/python -m pytest` | **95 passed** |
 | Web types | `cd web && npm run typecheck` | **Passed** |
 | Web build | `cd web && npm run build` | **Passed** (production bundle) |
 | Browser E2E | `cd web && npx playwright test` | **14 passed** (deployed tailnet URL, 1440 + 390) |
@@ -124,8 +124,21 @@ Findings fixed and covered by tests:
     upgrades that cleared known CVEs. See `docs/security-guardrails.md`.
 14. **Browser coverage gaps.** Added login/admin/settings axe checks, console-error checks,
     and run-wizard/admin 390 px tests.
+15. **Operator-selected discovery routes were missing.** The run wizard and API accept
+    relative routes; the release plan records them as discovery candidates and the live
+    instruction receives them as focus routes.
+16. **Baseline runs did not probe fixtures.** Approved project recipes are now probed even
+    without a release plan.
+17. **Prerequisite failures exposed raw exception text.** Probe failures are logged safely
+    and return generic policy details; blocked scenarios are recorded and shown in coverage.
+18. **Surface matching used substring checks.** Route presence now compares path segments
+    with template placeholders, so concrete evidence routes match templated scopes and
+    `/api/user` does not match `/api/users-admin`.
+19. **Pre-migration evidence backfill was misleading.** A corrective migration stamps
+    synthetic decisions at migration time and labels them; pre-migration comparisons fall
+    back to current state and are documented as a limitation.
 
-Backend tests increased from 81 to **92**; browser tests from 11 to **14**.
+Backend tests increased from 81 to **95**; browser tests from 11 to **14**.
 
 ## Blocked / not verified
 
@@ -141,6 +154,9 @@ Backend tests increased from 81 to **92**; browser tests from 11 to **14**.
   enforcing gateway for rebinding-sensitive targets.
 - **CI has not run remotely** (no remote repository push): the workflow is present and the same
   checks pass locally, but GitHub Actions execution is unverified.
+- **Pre-migration findings have no historical evidence-review timeline.** Existing findings
+  backfilled before the evidence-decisions table fall back to current status before the
+  migration timestamp; this is recorded in the migration and ADR-002a.
 - **Live authenticated exploration** remains disabled; the worker prerequisite probe verifies
   identities without sending them to the model.
 

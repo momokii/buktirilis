@@ -219,9 +219,26 @@ def test_expired_identity_fails_preflight_instead_of_downgrading(db, lab_project
     assert run.status == "failed"
     assert "prerequisites failed" in (run.failure_reason or "")
     assert "tenant-b-expired" in (run.failure_reason or "")
+    probe = (run.scope_snapshot or {}).get("prerequisite_probe") or {}
+    assert probe.get("blocked_scenarios")
     from app.models import Observation
 
     assert db.query(Observation).filter_by(run_id=run.id).count() == 0
+
+
+def test_baseline_probes_existing_approved_recipe_fixtures(db, lab_project, settings):
+    from tests.helpers import BOLA_RECIPE, approve_recipe, make_finding
+
+    finding = make_finding(db, lab_project.project)
+    approve_recipe(db, lab_project.project, finding, lab_project.operator, BOLA_RECIPE)
+    run = _execute(
+        db,
+        _create(db, lab_project, settings, kind=RunKind.BASELINE, build_label="2024.10.1"),
+        settings,
+    )
+    probe = (run.scope_snapshot or {}).get("prerequisite_probe") or {}
+    assert probe.get("ok") is True
+    assert probe.get("fixtures")
 
 
 def test_cancel_queued_run_is_terminal_without_a_worker(db, lab_project, settings):

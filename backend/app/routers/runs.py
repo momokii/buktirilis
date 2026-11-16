@@ -48,6 +48,7 @@ class RunRequest(BaseModel):
     account_ids: list[uuid.UUID] = []
     unauthenticated: bool = False
     baseline_run_id: uuid.UUID | None = None
+    discovery_routes: list[str] = []
     accept_reduced_scope: bool = False
 
 
@@ -60,6 +61,7 @@ class PreflightRequest(BaseModel):
     account_ids: list[uuid.UUID] = []
     unauthenticated: bool = False
     baseline_run_id: uuid.UUID | None = None
+    discovery_routes: list[str] = []
 
 
 def _run_or_404(db: Session, access: ProjectAccess, run_id: uuid.UUID) -> Run:
@@ -194,6 +196,7 @@ def request_run(
         baseline_run_id=payload.baseline_run_id,
         actor=principal.user,
         accept_reduced_scope=payload.accept_reduced_scope,
+        discovery_routes=payload.discovery_routes,
     )
     db.commit()
     return {

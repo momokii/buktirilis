@@ -10,7 +10,7 @@ execution remains unobserved pending worker provisioning.
 - [x] Evidence provenance/redaction, automatic replay recipes, guided retests, review acceptance
 - [x] Release Scan planning, known-finding replay, discovery, comparison buckets
 - [x] Frozen PDF/CSV/JSON exports with redaction and historical stability
-- [x] 92 backend tests, 14 Playwright tests, axe scan, 1440 px and 390 px screenshots
+- [x] 95 backend tests, 14 Playwright tests, axe scan, 1440 px and 390 px screenshots
 - [x] Fresh-database migrate + seed: 4 users, 1 project, 3 runs, 4 findings, 4 exports
 - [x] Documentation: README, deployment, Strix contract, decisions, progress
 
@@ -42,6 +42,6 @@ execution remains unobserved pending worker provisioning.
 - No real secrets are committed; demo credentials are generated into a gitignored file.
 
 ## Last Updated
-2026-11-16: hardening backlog completed and redeployed (commit 8575884); 92 backend and
-14 browser tests pass, audits/image scan clean. Live execution and isolation remain
-unverified pending a provisioned worker.
+2026-11-16: second review fixes complete; 95 backend and 14 browser tests pass, audits and
+image scan clean. Demo pilot redeployed; live execution and isolation remain unverified
+pending a provisioned worker.

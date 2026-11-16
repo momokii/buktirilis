@@ -162,6 +162,24 @@ def surface_inventory(db: Session, build: Build, profile_code: str, version: int
     return surfaces
 
 
+def normalise_discovery_routes(routes: list[str] | None) -> list[str]:
+    cleaned: list[str] = []
+    for raw in routes or []:
+        route = str(raw).strip()
+        if not route:
+            continue
+        if len(route) > 300 or not route.startswith("/") or "://" in route or ".." in route:
+            raise HTTPException(
+                status_code=422,
+                detail="Discovery routes must be relative paths inside the approved scope.",
+            )
+        if route not in cleaned:
+            cleaned.append(route)
+    if len(cleaned) > 20:
+        raise HTTPException(status_code=422, detail="At most 20 discovery routes may be selected.")
+    return cleaned
+
+
 def run_policy(db: Session, build: Build, settings: Settings) -> TargetPolicy:
     config = db.get(TargetConfig, build.target_config_id)
     if config is None:
@@ -498,6 +516,7 @@ def scope_snapshot(
     accounts: list[TestAccount],
     unauthenticated: bool,
     baseline_run_id: uuid.UUID | None,
+    discovery_routes: list[str] | None = None,
 ) -> dict[str, Any]:
     config = db.get(TargetConfig, build.target_config_id)
     policy = (
@@ -535,6 +554,7 @@ def scope_snapshot(
             for account in accounts
         ],
         "unauthenticated": unauthenticated,
+        "discovery_routes": list(discovery_routes or []),
         "surfaces": sorted({surface["route"] for surface in surfaces}),
         "surface_inventory": surfaces,
         "limits": limits,
@@ -566,6 +586,7 @@ def create_run(
     baseline_run_id: uuid.UUID | None,
     actor: User,
     accept_reduced_scope: bool,
+    discovery_routes: list[str] | None = None,
 ) -> tuple[Run, bool]:
     """Create a queued run. Returns ``(run, created)`` for idempotent submissions."""
     pre = preflight(
@@ -653,6 +674,7 @@ def create_run(
         accounts=accounts,
         unauthenticated=unauthenticated,
         baseline_run_id=baseline_run_id,
+        discovery_routes=discovery_routes,
     )
     run = Run(
         project_id=project.id,

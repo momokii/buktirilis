@@ -33,6 +33,19 @@ those without losing history. Deriving state also makes "absent is not fixed" th
 Snapshot queries pass an `as_of` timestamp. Comparisons assign exactly one primary bucket
 per current finding, with needs-validation and incomparable cases separated.
 
+## ADR-002a — Evidence decisions are append-only
+
+**Decision.** Store each evidence assessment in `evidence_decisions`; derive the status as of a
+run snapshot from the entries at that time. The mutable `findings.evidence_status` remains the
+current value for the detail screen.
+
+**Why.** A review after a run must not rewrite a historical comparison. Exports freeze the same
+snapshot. The pre-migration backfill is explicitly marked as migration-time data, not a
+historical decision.
+
+**Consequences.** Pre-migration findings have no review timeline; comparisons before the
+migration fall back to current state and are labelled only by that limitation.
+
 ## ADR-003 — One reproducible demo scenario with real HTTP replays
 
 **Decision.** Build a synthetic Atlas Billing lab with three build deployments. Demo scans

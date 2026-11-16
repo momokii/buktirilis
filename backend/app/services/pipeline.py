@@ -63,24 +63,23 @@ def probe_prerequisites(
     run: Run,
     build: Build,
     policy: TargetPolicy,
-    settings: Settings,
 ) -> dict[str, Any]:
     """Verify selected identities and recipe fixtures from inside the worker.
 
     Runs fail closed here instead of silently proceeding with fewer authenticated
     scenarios. The submission preflight checks configuration; this checks reachability.
     """
-    del settings  # reserved for future per-deployment probe controls
     snapshot = run.scope_snapshot or {}
-    selected = [str(name) for name in (snapshot.get("accounts") or []) if name]
     selected = [
         entry if isinstance(entry, str) else str(entry.get("name"))
         for entry in snapshot.get("accounts") or []
+        if entry
     ]
     result: dict[str, Any] = {
         "unauthenticated": bool(snapshot.get("unauthenticated")),
         "accounts": [],
         "fixtures": [],
+        "blocked_scenarios": [],
         "ok": True,
     }
     if result["unauthenticated"] or not selected:
@@ -107,8 +106,21 @@ def probe_prerequisites(
                 policy.resolve(build.target_url, account.identity_check_path).url
             ).url
         except Exception as exc:  # converted to a safe probe result
+            logger.warning("identity destination rejected for %s: %s", name, exc.__class__.__name__)
             result["accounts"].append(
-                {"name": name, "ok": False, "status": None, "detail": str(exc)[:200]}
+                {
+                    "name": name,
+                    "ok": False,
+                    "status": None,
+                    "detail": "destination rejected by policy",
+                }
+            )
+            result["blocked_scenarios"].append(
+                {
+                    "code": f"identity:{name}",
+                    "title": f"Identity {name}",
+                    "reason": "The identity check destination is outside the approved scope.",
+                }
             )
             result["ok"] = False
             continue
@@ -152,6 +164,13 @@ def probe_prerequisites(
         )
         if not ok:
             result["ok"] = False
+            result["blocked_scenarios"].append(
+                {
+                    "code": f"identity:{name}",
+                    "title": f"Identity {name}",
+                    "reason": detail,
+                }
+            )
 
     plan = snapshot.get("release_plan") or {}
     candidate_revisions = {
@@ -159,6 +178,22 @@ def probe_prerequisites(
         for candidate in plan.get("candidates", [])
         if candidate.get("action") == "automatic" and candidate.get("recipe_revision_id")
     }
+    if not candidate_revisions:
+        # A baseline has no release plan; still verify fixtures for approved recipes that
+        # already exist in the project.
+        from app.models import Recipe
+
+        candidate_revisions = {
+            str(revision_id)
+            for revision_id in db.execute(
+                select(RecipeRevision.id)
+                .join(Recipe, Recipe.id == RecipeRevision.recipe_id)
+                .where(
+                    Recipe.project_id == run.project_id,
+                    RecipeRevision.approved_at.is_not(None),
+                )
+            ).scalars()
+        }
     result["planned_revisions"] = sorted(candidate_revisions)
     result["plan_candidates"] = len(plan.get("candidates") or [])
     for revision_id in sorted(candidate_revisions):
@@ -189,12 +224,24 @@ def probe_prerequisites(
             try:
                 url = policy.check(policy.resolve(build.target_url, str(check_path)).url).url
             except Exception as exc:  # safe probe result
+                logger.warning(
+                    "fixture destination rejected for recipe r%s: %s",
+                    revision.revision,
+                    exc.__class__.__name__,
+                )
                 result["fixtures"].append(
                     {
                         "revision": revision.revision,
                         "name": ref.get("name"),
                         "ok": False,
-                        "detail": str(exc)[:200],
+                        "detail": "destination rejected by policy",
+                    }
+                )
+                result["blocked_scenarios"].append(
+                    {
+                        "code": f"fixture:{revision.revision}:{ref.get('name')}",
+                        "title": f"Fixture {ref.get('name')}",
+                        "reason": "The fixture check destination is outside the approved scope.",
                     }
                 )
                 result["ok"] = False
@@ -232,6 +279,15 @@ def probe_prerequisites(
             )
             if not ok:
                 result["ok"] = False
+                result["blocked_scenarios"].append(
+                    {
+                        "code": f"fixture:{revision.revision}:{ref.get('name')}",
+                        "title": f"Fixture {ref.get('name')}",
+                        "reason": f"HTTP {exchange.status}"
+                        if exchange.status is not None
+                        else "transport error",
+                    }
+                )
     return result
 
 
@@ -499,9 +555,7 @@ def execute_run(db: Session, *, run: Run, job: Job, settings: Settings) -> dict[
             return {"failed": True}
         snapshot["live_preflight"] = pre.checks
         run.scope_snapshot = snapshot
-    prerequisite_probe = probe_prerequisites(
-        db, run=run, build=build, policy=policy, settings=settings
-    )
+    prerequisite_probe = probe_prerequisites(db, run=run, build=build, policy=policy)
     snapshot = dict(run.scope_snapshot or {})
     snapshot["prerequisite_probe"] = prerequisite_probe
     run.scope_snapshot = snapshot

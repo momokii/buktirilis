@@ -1100,6 +1100,21 @@ function CoverageTab({ projectId, runId }: { projectId: string; runId: string })
                     ) : null}
                   </div>
                 ) : null}
+                {plan.discovery_candidates && plan.discovery_candidates.length > 0 ? (
+                  <div className="stack-sm">
+                    <h3>Discovery candidates</h3>
+                    <ul className="inline-code-list">
+                      {plan.discovery_candidates.map((candidate) => (
+                        <li key={`${candidate.method}-${candidate.route}`}>
+                          <Mono>
+                            {candidate.method} {candidate.route}
+                          </Mono>{" "}
+                          <span className="muted small">({candidate.reason})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
                 <TableWrap label="Release scan candidates">
                   <table>
                     <thead>
@@ -1135,6 +1150,18 @@ function CoverageTab({ projectId, runId }: { projectId: string; runId: string })
           title="Prerequisite probes"
           description="Identity and fixture checks performed by the worker before discovery."
         >
+          {data.methodology.prerequisite_probe.blocked_scenarios &&
+          data.methodology.prerequisite_probe.blocked_scenarios.length > 0 ? (
+            <Notice tone="warn" title="Blocked scenarios">
+              <ul className="steps">
+                {data.methodology.prerequisite_probe.blocked_scenarios.map((scenario) => (
+                  <li key={scenario.code}>
+                    <strong>{scenario.title}</strong> — {scenario.reason}
+                  </li>
+                ))}
+              </ul>
+            </Notice>
+          ) : null}
           <div className="grid-2">
             <div>
               <h3>Identities</h3>

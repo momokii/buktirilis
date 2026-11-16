@@ -217,7 +217,7 @@ cd web && npx playwright install chromium
 
 Verified in this environment (see [docs/progress.md](docs/progress.md) for exact output):
 
-- Backend: **92 tests** covering policy/OpenAPI overrides, redaction, replay assertions,
+- Backend: **95 tests** covering policy/OpenAPI overrides, redaction, replay assertions,
   retest/review semantics, verdict derivation, comparison buckets, pipeline, cancellation,
   revoked access, worker lease reconciliation, exports, API/CSRF/isolation, and the Strix
   subprocess contract.
@@ -235,7 +235,7 @@ Verified in this environment (see [docs/progress.md](docs/progress.md) for exact
 | `backend/app/services/` | Policy/OpenAPI, replay runner, recipes, retests, findings/comparison, ingest, releases, runs/queue, pipeline, exports, Strix adapter, demo seed |
 | `backend/app/routers/` | Auth, admin, projects/builds, runs/reports, findings/retests, exports |
 | `backend/migrations/` | Alembic schema (ordered, cycle-safe initial migration + follow-up) |
-| `backend/tests/` | 92 tests, including a real local HTTP lab fixture |
+| `backend/tests/` | 95 tests, including a real local HTTP lab fixture |
 | `lab/` | Synthetic Atlas Billing staging API with three deployments |
 | `web/src/` | React app, accessible UI primitives, report/finding/compare screens |
 | `web/e2e/` | Playwright browser and accessibility tests |

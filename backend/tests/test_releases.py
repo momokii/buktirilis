@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from app.models import OpenApiDocument
-from app.services.releases import openapi_diff
+from app.services.releases import build_release_plan, openapi_diff
+from tests.helpers import make_run
 
 
 def _document(db, project, operations: list[dict]) -> OpenApiDocument:
@@ -72,6 +73,22 @@ def test_openapi_diff_finds_added_changed_and_removed_operations(db, lab_project
     assert diff["added"] == ["GET /api/exports/{invoice_id}/pdf"]
     assert diff["changed"] == ["GET /api/invoices/{invoice_id}"]
     assert diff["removed"] == ["GET /api/old"]
+
+
+def test_release_plan_records_operator_selected_routes(db, lab_project):
+    run = make_run(db, lab_project.project, lab_project.builds["2024.10.3"], lab_project.operator)
+    run.scope_snapshot = {
+        "base_url": lab_project.builds["2024.10.3"].target_url,
+        "discovery_routes": ["/api/operator-selected"],
+    }
+    db.flush()
+    plan = build_release_plan(db, run)
+    assert plan["operator_routes"] == ["/api/operator-selected"]
+    assert any(
+        candidate["route"] == "/api/operator-selected"
+        and candidate["reason"] == "operator selected"
+        for candidate in plan["discovery_candidates"]
+    )
 
 
 def test_openapi_diff_is_unavailable_without_both_specs(db, lab_project):

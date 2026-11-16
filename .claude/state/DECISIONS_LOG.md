@@ -62,6 +62,24 @@ service has no Docker socket; live mode stays off until isolation is proven.
 execution and sandbox isolation remain unverified (TASK-003).
 ---
 
+## Hardening decisions (2026-11-16)
+---
+**Decision:** Add append-only evidence decisions, worker identity/fixture probes, OpenAPI-diff
+discovery candidates, operator-selected routes, and an active-only job idempotency index; pin
+Starlette directly at 1.10.0 for CVE fixes.
+**Date:** 2026-11-16
+**Context:** Code review found snapshot drift, missing prerequisite checks, no discovery-route
+selection, and duplicate-run 500s after a terminal job.
+**Rationale:** Derive historical evidence status from events; fail closed on prerequisites; keep
+discovery candidates in the run snapshot; allow a new run after a terminal one.
+**Alternatives Rejected:** Rewriting historical evidence; silently downgrading scopes; globally
+unique idempotency keys; ignoring OpenAPI operation changes.
+**Security Implications:** Worker probes never send credentials to the model; failure details are
+genericized; dependency and image scans are enforced.
+**Impact:** Migrations `6c715d92eb85`, `bc51a86f486f`, `e2f921369308`, `fd9dae61da04`; see
+`docs/decisions.md` ADR-002a and `docs/security-guardrails.md`.
+---
+
 ## New decision template
 ---
 **Decision:** [What was decided]

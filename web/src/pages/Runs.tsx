@@ -213,6 +213,7 @@ function RunWizard({
   const [selected, setSelected] = useState<string[]>([]);
   const [unauthenticated, setUnauthenticated] = useState(false);
   const [baselineRunId, setBaselineRunId] = useState("");
+  const [discoveryRoutes, setDiscoveryRoutes] = useState("");
   const [ack, setAck] = useState(false);
   const [preview, setPreview] = useState<PreflightPreview | null>(null);
   const [busy, setBusy] = useState(false);
@@ -228,6 +229,7 @@ function RunWizard({
     setPreview(null);
     setError(null);
     setAck(false);
+    setDiscoveryRoutes("");
     setBuildId((current) => current || builds.data?.items[0]?.id || "");
     if (accounts.data) {
       setSelected(accounts.data.items.map((account) => account.id));
@@ -245,8 +247,12 @@ function RunWizard({
       account_ids: unauthenticated ? [] : selected,
       unauthenticated,
       baseline_run_id: kind === "release_scan" ? baselineRunId || null : null,
+      discovery_routes: discoveryRoutes
+        .split(/[\n,]/)
+        .map((route) => route.trim())
+        .filter(Boolean),
     }),
-    [buildId, kind, depth, selected, unauthenticated, baselineRunId],
+    [buildId, kind, depth, selected, unauthenticated, baselineRunId, discoveryRoutes],
   );
 
   const runPreflight = async () => {
@@ -379,6 +385,20 @@ function RunWizard({
           </Select>
         </Field>
       ) : null}
+
+      <Field
+        label="Operator-selected discovery routes (optional)"
+        htmlFor="run-discovery-routes"
+        hint="One relative path per line or comma separated. These augment OpenAPI-diff candidates."
+      >
+        <textarea
+          id="run-discovery-routes"
+          className="input"
+          value={discoveryRoutes}
+          onChange={(event) => setDiscoveryRoutes(event.target.value)}
+          placeholder="/api/exports/{invoice_id}/pdf"
+        />
+      </Field>
 
       <fieldset>
         <legend>Test identities</legend>

@@ -317,6 +317,51 @@ def test_absent_finding_route_reports_a_surface_gap(db, lab_project):
     assert row["verification"]["reason_code"] == "surface_absent"
 
 
+def test_route_presence_uses_segment_templates_and_avoids_substrings(db, lab_project):
+    from app.models import Surface
+
+    templated = make_finding(
+        db,
+        lab_project.project,
+        scope="GET /api/invoices/{invoice_id}",
+        actors="tenant-b -> tenant-a invoice",
+    )
+    substring = make_finding(
+        db,
+        lab_project.project,
+        title="Unrelated user route",
+        scope="GET /api/user",
+        actors="tenant-b -> tenant-a user",
+    )
+    run = _run(db, lab_project, "2024.10.3", T0)
+    add_observation(db, templated, run.build_id, outcome="observed", observed_at=T0, run=run)
+    add_observation(db, substring, run.build_id, outcome="observed", observed_at=T0, run=run)
+    db.add_all(
+        [
+            Surface(
+                project_id=lab_project.project.id,
+                run_id=run.id,
+                route="/api/invoices/INV-A-1001",
+                methods=["GET"],
+                source="recon",
+                tested=True,
+            ),
+            Surface(
+                project_id=lab_project.project.id,
+                run_id=run.id,
+                route="/api/users-admin",
+                methods=["GET"],
+                source="recon",
+                tested=True,
+            ),
+        ]
+    )
+    db.flush()
+    rows = {item.finding.id: item for item in build_run_view(db, run)}
+    assert rows[templated.id].route_absent is False
+    assert rows[substring.id].route_absent is True
+
+
 def test_mode_mismatch_makes_comparison_incomparable(db, lab_project):
     run_a = _run(db, lab_project, "2024.10.1", T0, mode="live")
     run_b = _run(db, lab_project, "2024.10.2", T0 + timedelta(days=1), mode="demo")

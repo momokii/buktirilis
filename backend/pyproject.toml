@@ -13,6 +13,8 @@ dependencies = [
     "pydantic-settings==2.16.3",
     "python-multipart==0.0.33",
     "reportlab==4.4.4",
+    # Direct pin keeps Starlette on the patched 1.10 line; FastAPI allows >=0.46.
+    "starlette==1.10.0",
     "sqlalchemy==2.0.45",
     "starlette==1.10.0",
     "uvicorn[standard]==0.38.0",

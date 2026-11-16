@@ -41,6 +41,10 @@ SHARED_FAILURE_REASONS = {
 }
 
 
+def _empty_diff(reason: str) -> dict[str, Any]:
+    return {"available": False, "reason": reason, "added": [], "changed": [], "removed": []}
+
+
 def openapi_operations(db: Session, build: Build) -> dict[str, dict[str, Any]]:
     if not build.openapi_document_id:
         return {}
@@ -58,13 +62,7 @@ def openapi_diff(db: Session, baseline_build: Build, current_build: Build) -> di
     baseline_operations = openapi_operations(db, baseline_build)
     current_operations = openapi_operations(db, current_build)
     if not baseline_operations or not current_operations:
-        return {
-            "available": False,
-            "reason": "Both builds need an OpenAPI revision to compare operations.",
-            "added": [],
-            "changed": [],
-            "removed": [],
-        }
+        return _empty_diff("Both builds need an OpenAPI revision to compare operations.")
     baseline_keys = set(baseline_operations)
     current_keys = set(current_operations)
     changed = [
@@ -131,13 +129,7 @@ def build_release_plan(db: Session, run: Run) -> dict[str, Any]:
     diff = (
         openapi_diff(db, baseline_build, current_build)
         if baseline_build is not None and current_build is not None
-        else {
-            "available": False,
-            "reason": "A comparison baseline is required to diff OpenAPI operations.",
-            "added": [],
-            "changed": [],
-            "removed": [],
-        }
+        else _empty_diff("A comparison baseline is required to diff OpenAPI operations.")
     )
     discovery_candidates = [
         {
@@ -154,6 +146,14 @@ def build_release_plan(db: Session, run: Run) -> dict[str, Any]:
         }
         for key in diff["changed"]
     ]
+    operator_routes = [
+        str(route) for route in (run.scope_snapshot or {}).get("discovery_routes", [])
+    ]
+    for route in operator_routes:
+        if not any(candidate["route"] == route for candidate in discovery_candidates):
+            discovery_candidates.append(
+                {"method": "GET", "route": route, "reason": "operator selected"}
+            )
     limits = run.budget or {}
     max_checks = int(limits.get("max_checks", 12))
     replay_allocation = min(int(limits.get("max_replay_checks", 12)), max_checks)
@@ -178,9 +178,11 @@ def build_release_plan(db: Session, run: Run) -> dict[str, Any]:
             "Then remaining open cases by severity and age",
             "Guided and needs-validation cases stay visible as pending human action",
             "Replays are capped independently of the discovery allocation",
-            "Added or changed OpenAPI operations are recorded as discovery candidates",
+            "Added or changed OpenAPI operations and operator-selected routes are recorded "
+            "as discovery candidates",
         ],
         "openapi_diff": diff,
+        "operator_routes": operator_routes,
         "discovery_candidates": discovery_candidates,
         "discovery_rationale": (
             "OpenAPI operations were unchanged; bounded recon may still surface changes."
@@ -188,7 +190,7 @@ def build_release_plan(db: Session, run: Run) -> dict[str, Any]:
             else (
                 "Discovery focuses on added or changed OpenAPI operations."
                 if discovery_candidates
-                else "No OpenAPI operations were available to diff; recon is the only discovery source."
+                else "No OpenAPI operations or operator routes were available; recon is the only discovery source."
             )
         ),
         "budget": {

@@ -51,7 +51,7 @@ its location only.
 
 `.github/workflows/ci.yml` runs:
 
-1. Backend: frozen install, Ruff, format check, mypy, 92 tests against PostgreSQL.
+1. Backend: frozen install, Ruff, format check, mypy, 95 tests against PostgreSQL.
 2. Frontend: `npm ci`, type check, production build.
 3. Security: pip-audit, npm audit, Bandit, secret scan, image build, Trivy image scan.
 
@@ -61,6 +61,9 @@ seeded database; it is already exercised against the deployed tailnet URL before
 ## Known limitations
 
 - CI is unverified until the repository is pushed and the workflow runs.
+- The Docker images apply distribution security upgrades (`apt-get upgrade` / `apk upgrade`)
+  at build time so patched base packages are included. This trades bit-for-bit build
+  reproducibility for a clean HIGH/CRITICAL scan; rebuild and rescan per release.
 - Trivy's vulnerability database is downloaded at scan time; an offline runner needs a mirrored DB.
 - Secret scanning cannot prove absence of secrets; it is one gate, not a guarantee.
 - `COOKIE_SECURE=false` on the current plain-HTTP tailnet deployment remains a deployment caveat,

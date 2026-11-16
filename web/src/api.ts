@@ -341,6 +341,7 @@ export interface CoverageReport {
       ok: boolean;
       accounts: { name: string; ok: boolean; status: number | null; detail: string; tenant?: string }[];
       fixtures: { revision: number; name: string; ok: boolean; status?: number; detail: string }[];
+      blocked_scenarios?: { code: string; title: string; reason: string }[];
     } | null;
   };
   limitations: string[];

@@ -95,3 +95,13 @@ disposition; comparisons and new exports use the selected run snapshot while lat
 is labelled separately; completed runs no longer grow finding membership from later evidence;
 cross-mode comparisons return no buckets; guided changes-requested states report the reason.
 Backend tests 85, browser tests 12.
+
+## Hardening backlog completed (2026-11-16)
+Added worker-side identity/fixture prerequisite probes, append-only evidence decisions with
+snapshot-as-of comparison semantics, explicit surface-absent reasons, OpenAPI operation-diff
+discovery candidates, active-only job idempotency, and the approved security guardrails
+(pip-audit, npm audit, Bandit, detect-secrets baseline, Trivy image scan, pinned CI actions).
+Dependency upgrades cleared known CVEs; image scans are clean. Research and guardrail
+runbooks added. Final checks: 92 backend tests, 14 browser tests against the deployed tailnet
+URL, fresh-database seed, and restart persistence. Live Strix execution remains blocked on
+worker/model/target provisioning.

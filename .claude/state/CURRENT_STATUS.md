@@ -42,5 +42,6 @@ execution remains unobserved pending worker provisioning.
 - No real secrets are committed; demo credentials are generated into a gitignored file.
 
 ## Last Updated
-2026-11-14: BuktiRilis first internal release implemented; demo path verified. Live execution
-and isolation remain unverified pending a provisioned worker.
+2026-11-16: hardening backlog completed and redeployed (commit 8575884); 92 backend and
+14 browser tests pass, audits/image scan clean. Live execution and isolation remain
+unverified pending a provisioned worker.

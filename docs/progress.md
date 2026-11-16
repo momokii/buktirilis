@@ -13,7 +13,7 @@ Browser UI: React/TypeScript. Backend/worker: Python/FastAPI. DB: PostgreSQL.
 | M4 | Frozen PDF/CSV/JSON exports with snapshots | Completed | `0b9d286` |
 | M5 | Worker, live Strix adapter, synthetic lab, isolation preflight | Adapter implemented; live execution **not observed** | `a0eeedb` + `0b9d286` |
 | M6 | Release Scan, discovery, comparison, final browser verification | Completed (demo path) | `0b9d286` + `27fedbe` |
-| — | Hardening and final documentation | Completed | `ca9abd7`, `8c1de93`, `8575884`, `df9d798` |
+| — | Hardening and final documentation | Completed | `ca9abd7`, `8c1de93`, `8575884`, `df9d798`, `1c6b039` |
 
 ## What is delivered
 
@@ -172,7 +172,7 @@ Backend tests increased from 81 to **97**; browser tests from 11 to **14**.
 ## Current deployment (demo pilot)
 
 - URL: `http://100.124.184.116:8088` (Tailscale interface only; not LAN/public)
-- Deployed code: `df9d798` (second-review remediation); images rebuilt and scanned after the change
+- Deployed code: `1c6b039` (route-bound and snapshot-scope fixes); images rebuilt and scanned after the change
 - Mode: `APP_ENV=staging`, demo records, web bootstrap disabled, API docs disabled,
   live execution disabled. `COOKIE_SECURE=false` because the tailnet origin is plain HTTP;
   path is WireGuard-encrypted. Prefer `tailscale serve` + TLS to enable Secure cookies.

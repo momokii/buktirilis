@@ -124,6 +124,13 @@ image-scan:
 			--ignore-unfixed --exit-code 1 "$$image" || exit 1; \
 	done
 
+mono-up:
+	docker compose -f compose.yaml -f compose.mono.yaml up -d --build api worker
+	docker compose -f compose.yaml -f compose.mono.yaml ps
+
+mono-down:
+	docker compose -f compose.yaml -f compose.mono.yaml stop worker
+
 compose-config:
 	docker compose config >/dev/null && echo "compose config valid"
 

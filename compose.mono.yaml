@@ -1,0 +1,43 @@
+# Single-VM live profile. Extends compose.yaml; the web/API still have no Docker socket.
+# Only the worker gets the runtime socket, because Strix launches its own sandbox container.
+#
+#   cp .env.live.example .env.live   # fill LLM_API_KEY locally; never commit it
+#   docker compose -f compose.yaml -f compose.mono.yaml up -d --build api worker
+#
+# This is a dev/single-VM compromise: Docker socket access is root-equivalent on the host.
+# For a pilot, use a dedicated worker VM with the egress boundary in docs/deployment.md.
+services:
+  api:
+    environment:
+      DEMO_SEED_ENABLED: "false"
+      LIVE_EXECUTION_ENABLED: "true"
+      STRIX_MODEL: ${STRIX_MODEL:-openai/deepseek-v4.1-flash}
+      STRIX_VERSION: ${STRIX_VERSION:-1.7.1}
+      LIVE_ENGINE_NOTE: single-vm-mono
+
+  worker:
+    build:
+      context: ./backend
+      args:
+        INSTALL_STRIX: "true"
+    env_file:
+      - path: .env
+        required: true
+      - path: .env.live
+        required: false
+    environment:
+      APP_ENV: staging
+      DEMO_SEED_ENABLED: "false"
+      LIVE_EXECUTION_ENABLED: "true"
+      STRIX_MODEL: ${STRIX_MODEL:-openai/deepseek-v4.1-flash}
+      STRIX_VERSION: ${STRIX_VERSION:-1.7.1}
+      STRIX_BINARY: /srv/.venv/bin/strix
+      LLM_API_BASE: ${LLM_API_BASE:-https://opencode.ai/inference/go/openai/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      STRIX_RUNS_ROOT: /srv/var/strix_runs
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - artifacts:/srv/var/artifacts
+      - strix_runs:/srv/var/strix_runs
+    mem_limit: 2g
+    pids_limit: 512

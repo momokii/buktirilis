@@ -88,12 +88,28 @@ export function classifyToolCall(event, cwd, root) {
   return "ask";
 }
 
+/** Global auto-approve switch: any project using this extension honours the same flag file. */
+export const AUTO_APPROVE_FLAG = join(homedir(), ".pi/agent/project-policy-auto-approve");
+
+export function autoApproveEnabled() {
+  try {
+    return readFileSync(AUTO_APPROVE_FLAG, "utf8").trim() === "all";
+  } catch {
+    return false;
+  }
+}
+
 /** Gate an operation; missing UI, rejected prompts, or prompt failures deny execution. */
 export async function gateToolCall(event, ctx, root) {
   const decision = classifyToolCall(event, ctx.cwd, root);
   if (decision === "allow") return;
   const blocked = { block: true, reason: "Project policy refused this operation; do not work around it." };
-  if (decision === "deny" || !ctx.hasUI) return blocked;
+  // Hard denies are never bypassed, even in auto-approve mode.
+  if (decision === "deny") return blocked;
+  // "ask" is auto-approved only while the global flag file says so; read per call so it
+  // takes effect without restarting a session.
+  if (autoApproveEnabled()) return;
+  if (!ctx.hasUI) return blocked;
   try {
     const detail = JSON.stringify(event.input ?? {});
     if (await ctx.ui.confirm(`Approve project tool: ${event.toolName}`, detail)) return;
@@ -109,7 +125,10 @@ export default function projectPolicy(pi) {
   let contextReady = false;
   pi.on("session_start", async (_event, ctx) => {
     contextReady = false;
-    if (ctx.hasUI) ctx.ui.setStatus("project-policy", "project policy active; approvals required");
+    if (ctx.hasUI) {
+      const state = autoApproveEnabled() ? "auto-approve" : "approvals required";
+      ctx.ui.setStatus("project-policy", `project policy active; ${state}`);
+    }
   });
   pi.on("before_agent_start", async (event, ctx) => {
     contextReady = false;

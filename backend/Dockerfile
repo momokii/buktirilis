@@ -4,6 +4,7 @@ FROM python:3.12-slim AS runtime
 COPY --from=ghcr.io/astral-sh/uv:0.9.30 /uv /uvx /bin/
 RUN apt-get update \
     && apt-get -y upgrade \
+    && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -15,6 +16,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /srv
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
+
+ARG INSTALL_STRIX=false
+ARG TARGETARCH=amd64
+RUN if [ "$INSTALL_STRIX" = "true" ]; then \
+      case "$TARGETARCH" in \
+        amd64) wheel="strix_agent-1.7.1-py3-none-manylinux_2_17_x86_64.whl" ;; \
+        arm64) wheel="strix_agent-1.7.1-py3-none-manylinux_2_17_aarch64.whl" ;; \
+        *) echo "unsupported architecture: $TARGETARCH" >&2; exit 1 ;; \
+      esac; \
+      uv pip install --python /srv/.venv/bin/python \
+        "https://github.com/usestrix/strix/releases/download/v1.7.1/$wheel"; \
+    fi
 
 COPY alembic.ini ./
 COPY migrations ./migrations

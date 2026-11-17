@@ -209,3 +209,11 @@ Backend tests increased from 81 to **100**; browser tests from 11 to **14**.
    allowed/denied/redirect output in the runbook.
 4. Add the observed real artifact sample as a regression fixture (sanitized) before enabling
    live mode for the pilot group.
+
+## Single-VM live profile (prepared)
+Added `compose.mono.yaml` and a live worker image with pinned Strix `v1.7.1`; the worker alone
+receives the Docker socket, with resource limits and no-new-privileges. Added
+`docs/monodeploy.md`, `.env.live.example`, and `make mono-up`. Live execution has not been
+observed; it waits for the operator-supplied `LLM_API_KEY` in `.env.live`. The same-VM socket
+is documented as a local-dev compromise; host egress isolation is not enforced without
+firewall/root access.

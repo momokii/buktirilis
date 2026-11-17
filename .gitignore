@@ -57,3 +57,6 @@ __pycache__/
 *.pyc
 lab/app/__pycache__/
 *.tsbuildinfo
+
+# Live deployment template is safe; real live env files stay ignored.
+!.env.live.example

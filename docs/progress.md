@@ -145,6 +145,11 @@ Findings fixed and covered by tests:
     prior revisions remain intact, and submissions record the revision followed.
 22. **Deployment portability was undocumented.** Added `scripts/deploy.sh`,
     `docs/deploying-elsewhere.md`, retention operations, and a parity checklist.
+23. **Reduced-scope recovery required a manual resubmission.** A failed prerequisite run now
+    offers an explicit "Retry with passing identities" action that creates a new run from the
+    identities that passed; fixture/build failures still require repair.
+24. **Baseline fixture probing was over-broad.** Baselines now probe only selected identities;
+    recipe fixtures are required for planned replays (release scans), not unrelated recipes.
 
 Backend tests increased from 81 to **100**; browser tests from 11 to **14**.
 
@@ -158,26 +163,17 @@ Backend tests increased from 81 to **100**; browser tests from 11 to **14**.
   out-of-scope-redirect probes pass on the deployment.
 - **Real linked HTTP evidence sample**: contract parser handles `http_exchanges.json`; no real
   `v1.7.1` sample was available, so only its absence handling is verified.
-- **DNS pinning**: resolution is checked, but the connection is not pinned; require an
-  enforcing gateway for rebinding-sensitive targets.
+- **DNS pinning/sandbox egress**: resolution is checked, but the connection is not pinned and
+  sandbox egress isolation is not demonstrated; require the enforcing gateway/worker boundary.
 - **CI has not run remotely** (no remote repository push): the workflow is present and the same
   checks pass locally, but GitHub Actions execution is unverified.
+- **A second physical-host deployment is unverified.** The script and Compose path are
+  checked locally; another machine still needs an operator run.
 - **Pre-migration findings have no historical evidence-review timeline.** Existing findings
   backfilled before the evidence-decisions table fall back to current status before the
   migration timestamp; this is recorded in the migration and ADR-002a.
-- **Post-probe reduced scope is a resubmission path.** Blocked prerequisites are shown in the
-  coverage view and the run fails closed; the operator must submit a reduced-scope run rather
-  than approve in place.
-- **Baseline fixture probes cover all approved project recipes**, which can block a baseline
-  over a fixture unrelated to the selected scenarios.
-- **Remote CI is unverified** until the workflow is pushed and run.
-- **Guided recipe editing by a reviewer** is not a separate form; reviewers accept/request
-  changes and can document evidence, but they cannot rewrite guided steps. This remains a
-  product-scope gap beyond the current acceptance paths.
 - **Container rebuild reproducibility** is traded for clean image scans because runtime images
   apply distribution security upgrades; rebuild and rescan per release.
-- **DNS is checked but connections are not pinned**; require an enforcing gateway for
-  rebinding-sensitive targets.
 - **Live authenticated exploration** remains disabled; the worker prerequisite probe verifies
   identities without sending them to the model.
 
@@ -200,8 +196,8 @@ Backend tests increased from 81 to **100**; browser tests from 11 to **14**.
 - TASK-003 live Strix pilot: BLOCKED on external worker/model/target prerequisites.
 - Product/demo release: complete for the documented acceptance paths; no known code-side
   blocker for the demo. CI is unverified remotely; live Strix/isolation remain externally
-  blocked. The post-probe reduced-scope flow is fail-closed with a resubmission path rather
-  than an in-place approval.
+  blocked. Retention, guided-step revisions, reduced-scope retry, and portable deployment are
+  implemented.
 
 ## Next action
 

@@ -178,22 +178,6 @@ def probe_prerequisites(
         for candidate in plan.get("candidates", [])
         if candidate.get("action") == "automatic" and candidate.get("recipe_revision_id")
     }
-    if not candidate_revisions:
-        # A baseline has no release plan; still verify fixtures for approved recipes that
-        # already exist in the project.
-        from app.models import Recipe
-
-        candidate_revisions = {
-            str(revision_id)
-            for revision_id in db.execute(
-                select(RecipeRevision.id)
-                .join(Recipe, Recipe.id == RecipeRevision.recipe_id)
-                .where(
-                    Recipe.project_id == run.project_id,
-                    RecipeRevision.approved_at.is_not(None),
-                )
-            ).scalars()
-        }
     result["planned_revisions"] = sorted(candidate_revisions)
     result["plan_candidates"] = len(plan.get("candidates") or [])
     for revision_id in sorted(candidate_revisions):

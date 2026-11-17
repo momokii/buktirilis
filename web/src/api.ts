@@ -149,6 +149,12 @@ export interface RunDetail extends RunSummary {
     accounts: { name: string; role: string; tenant: string }[];
     unauthenticated: boolean;
     build_identity: string;
+    prerequisite_probe: {
+      ok: boolean;
+      accounts: { name: string; ok: boolean; detail: string }[];
+      fixtures: { name: string; ok: boolean; detail: string }[];
+      blocked_scenarios?: { code: string; title: string; reason: string }[];
+    } | null;
   };
 }
 

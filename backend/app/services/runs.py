@@ -788,6 +788,68 @@ def create_run(
     return run, True
 
 
+def retry_with_passing_identities(
+    db: Session,
+    *,
+    run: Run,
+    actor: User,
+    settings: Settings,
+    accept_reduced_scope: bool = True,
+) -> Run:
+    """Create a new run using only identities that passed the worker probe.
+
+    Fixture or build-prerequisite failures cannot be fixed by dropping an identity, so
+    they are rejected with a repair instruction instead.
+    """
+    probe = (run.scope_snapshot or {}).get("prerequisite_probe") or {}
+    if not probe:
+        raise HTTPException(
+            status_code=409, detail="This run has no recorded prerequisite probe to reduce."
+        )
+    failed_fixtures = [entry for entry in probe.get("fixtures", []) if not entry.get("ok")]
+    if failed_fixtures:
+        raise HTTPException(
+            status_code=409,
+            detail="Fixture failures require repair; they cannot be bypassed by reducing identities.",
+        )
+    passing_names = [entry["name"] for entry in probe.get("accounts", []) if entry.get("ok")]
+    if not passing_names:
+        raise HTTPException(
+            status_code=409, detail="No selected identity passed the prerequisite probe."
+        )
+    account_ids = list(
+        db.execute(
+            select(TestAccount.id).where(
+                TestAccount.project_id == run.project_id,
+                TestAccount.name.in_(passing_names),
+            )
+        ).scalars()
+    )
+    build = db.get(Build, run.build_id)
+    project = db.get(Project, run.project_id)
+    if build is None or project is None:
+        raise HTTPException(
+            status_code=409, detail="The original project or build no longer exists."
+        )
+    new_run, _created = create_run(
+        db,
+        settings=settings,
+        project=project,
+        build=build,
+        kind=run.kind,
+        depth=run.depth,
+        profile_code=run.profile_code,
+        profile_version=run.profile_version,
+        account_ids=account_ids,
+        unauthenticated=False,
+        baseline_run_id=run.baseline_run_id,
+        actor=actor,
+        accept_reduced_scope=accept_reduced_scope,
+        discovery_routes=list((run.scope_snapshot or {}).get("discovery_routes") or []),
+    )
+    return new_run
+
+
 def cancel_run(db: Session, *, run: Run, actor: User, reason: str = "") -> Run:
     if run.status in TERMINAL_RUN_STATES:
         raise HTTPException(status_code=409, detail=f"This run already finished as {run.status}")

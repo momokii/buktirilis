@@ -16,7 +16,11 @@ from app.services.findings import (
 from app.services.ingest import ArtifactBundle, ingest_run
 from app.services.pipeline import execute_run
 from app.services.queue import reconcile
-from app.services.runs import cancel_run, create_run
+from app.services.runs import (
+    cancel_run,
+    create_run,
+    retry_with_passing_identities,
+)
 from tests.helpers import approve_recipe, make_finding, make_run
 
 
@@ -224,13 +228,16 @@ def test_expired_identity_fails_preflight_instead_of_downgrading(db, lab_project
     from app.models import Observation
 
     assert db.query(Observation).filter_by(run_id=run.id).count() == 0
+    retry = retry_with_passing_identities(
+        db, run=run, actor=lab_project.operator, settings=settings
+    )
+    db.commit()
+    retry_accounts = {entry["name"] for entry in (retry.scope_snapshot or {}).get("accounts", [])}
+    assert retry_accounts == {"tenant-a-owner"}
+    assert retry.status == "queued"
 
 
-def test_baseline_probes_existing_approved_recipe_fixtures(db, lab_project, settings):
-    from tests.helpers import BOLA_RECIPE, approve_recipe, make_finding
-
-    finding = make_finding(db, lab_project.project)
-    approve_recipe(db, lab_project.project, finding, lab_project.operator, BOLA_RECIPE)
+def test_baseline_probes_identities_without_planned_fixtures(db, lab_project, settings):
     run = _execute(
         db,
         _create(db, lab_project, settings, kind=RunKind.BASELINE, build_label="2024.10.1"),
@@ -238,7 +245,9 @@ def test_baseline_probes_existing_approved_recipe_fixtures(db, lab_project, sett
     )
     probe = (run.scope_snapshot or {}).get("prerequisite_probe") or {}
     assert probe.get("ok") is True
-    assert probe.get("fixtures")
+    assert probe.get("accounts")
+    # A baseline has no planned replays, so recipe fixtures are not required yet.
+    assert probe.get("fixtures") == []
 
 
 def test_cancel_queued_run_is_terminal_without_a_worker(db, lab_project, settings):

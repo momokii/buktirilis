@@ -39,6 +39,7 @@ from app.services.runs import (
     create_run,
     normalise_discovery_routes,
     preflight,
+    retry_with_passing_identities,
     run_progress,
 )
 
@@ -270,6 +271,7 @@ def read_run(
             "accounts": (run.scope_snapshot or {}).get("accounts", []),
             "unauthenticated": (run.scope_snapshot or {}).get("unauthenticated", False),
             "build_identity": (run.scope_snapshot or {}).get("build_identity"),
+            "prerequisite_probe": (run.scope_snapshot or {}).get("prerequisite_probe"),
         },
     }
 
@@ -282,6 +284,27 @@ def read_progress(
 ) -> dict:
     run = _run_or_404(db, access, run_id)
     return run_progress(db, run)
+
+
+@ROUTER.post("/runs/{run_id}/retry-reduced", status_code=201)
+def retry_reduced_scope(
+    run_id: uuid.UUID,
+    access: ProjectAccess = Depends(require_project(Role.OPERATOR)),
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(csrf_protected),
+) -> dict:
+    run = _run_or_404(db, access, run_id)
+    new_run = retry_with_passing_identities(
+        db, run=run, actor=principal.user, settings=get_settings()
+    )
+    db.commit()
+    return {
+        "run": run_row(db, new_run),
+        "message": (
+            "New run queued with the identities that passed the prerequisite probe. "
+            "Fixture or build prerequisites must be repaired instead."
+        ),
+    }
 
 
 @ROUTER.post("/runs/{run_id}/cancel")

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useApi } from "../auth";
 import { api, errorMessage } from "../api";
 import type {
@@ -78,7 +78,9 @@ export function ReportPage() {
       : null,
   );
   const { notify } = useToast();
+  const navigate = useNavigate();
   const [exporting, setExporting] = useState(false);
+  const [retryingReduced, setRetryingReduced] = useState(false);
   const exportsList = useApi<{ items: ExportRow[] }>(
     runId ? `/api/projects/${project.id}/runs/${runId}/exports` : null,
   );
@@ -126,6 +128,22 @@ export function ReportPage() {
       notify("error", errorMessage(caught));
     } finally {
       setExporting(false);
+    }
+  };
+
+  const retryReduced = async () => {
+    setRetryingReduced(true);
+    try {
+      const response = await api<{ run: { id: string }; message: string }>(
+        `/api/projects/${project.id}/runs/${current.id}/retry-reduced`,
+        { method: "POST" },
+      );
+      notify("success", response.message);
+      navigate(`/projects/${project.id}/runs/${response.run.id}`);
+    } catch (caught) {
+      notify("error", errorMessage(caught));
+    } finally {
+      setRetryingReduced(false);
     }
   };
 
@@ -265,11 +283,27 @@ export function ReportPage() {
           tone={current.status === "canceled" ? "info" : "error"}
           title={`Run ${current.status.replace(/_/g, " ")}`}
           action={
-            project.capabilities?.can_operate ? (
-              <LinkButton to={`/projects/${project.id}/runs`} size="sm">
-                Request a new run
-              </LinkButton>
-            ) : null
+            <div className="row">
+              {project.capabilities?.can_operate &&
+              current.scope.prerequisite_probe &&
+              !current.scope.prerequisite_probe.ok &&
+              current.scope.prerequisite_probe.accounts.some((account) => !account.ok) &&
+              current.scope.prerequisite_probe.fixtures.every((fixture) => fixture.ok) ? (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  busy={retryingReduced}
+                  onClick={() => void retryReduced()}
+                >
+                  Retry with passing identities
+                </Button>
+              ) : null}
+              {project.capabilities?.can_operate ? (
+                <LinkButton to={`/projects/${project.id}/runs`} size="sm">
+                  Request a new run
+                </LinkButton>
+              ) : null}
+            </div>
           }
         >
           {current.failure_reason ?? "No failure detail was recorded."}{" "}

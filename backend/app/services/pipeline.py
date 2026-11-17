@@ -506,19 +506,26 @@ def execute_run(db: Session, *, run: Run, job: Job, settings: Settings) -> dict[
         )
         return {"failed": True}
     if not identity["matches"]:
-        _fail(
-            db,
-            run=run,
-            job=job,
-            reason=(
-                "The deployed build identity does not match the approved build "
-                f"(expected {identity['expected'] or 'unrecorded'}, observed "
-                f"{identity['observed'] or 'unavailable'}). Affected results would be inconclusive."
-            ),
-            stage_code=StageCode.PREFLIGHT.value,
-            error_code="build_identity_mismatch",
-        )
-        return {"failed": True}
+        attested = build.identity_attested_by is not None and bool(build.expected_identity)
+        if not (attested and not identity["observed"]):
+            _fail(
+                db,
+                run=run,
+                job=job,
+                reason=(
+                    "The deployed build identity does not match the approved build "
+                    f"(expected {identity['expected'] or 'unrecorded'}, observed "
+                    f"{identity['observed'] or 'unavailable'}). Affected results would be inconclusive."
+                ),
+                stage_code=StageCode.PREFLIGHT.value,
+                error_code="build_identity_mismatch",
+            )
+            return {"failed": True}
+        run.limitations = [
+            *(run.limitations or []),
+            "The deployment does not expose a build identity; the expected identity is "
+            "operator-attested and was not observed during this run.",
+        ]
 
     if run.mode == RunMode.LIVE.value:
         pre = live_preflight(settings)
@@ -879,7 +886,7 @@ def execute_run(db: Session, *, run: Run, job: Job, settings: Settings) -> dict[
     checks.append({"phase": "post", **post_identity})
     snapshot["identity_checks"] = checks
     run.scope_snapshot = snapshot
-    if not post_identity["matches"]:
+    if not post_identity["matches"] and post_identity["observed"]:
         stale_reason = (
             "The deployed build identity changed while the run executed; verification is stale."
         )

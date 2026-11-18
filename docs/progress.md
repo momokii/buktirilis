@@ -180,7 +180,7 @@ Backend tests increased from 81 to **100**; browser tests from 11 to **14**.
 ## Current deployment (demo pilot)
 
 - URL: `http://100.124.184.116:8088` (Tailscale interface only; not LAN/public)
-- Deployed code: `2e45425` (retention, guided revisions, reduced-scope retry, portable deployment); images rebuilt and scanned after the change
+- Deployed code: `771e3ec` plus the live-pilot adapter fixes in the working tree (pending commit); images rebuilt for the live worker
 - Mode: `APP_ENV=staging`, demo records, web bootstrap disabled, API docs disabled,
   live execution disabled. `COOKIE_SECURE=false` because the tailnet origin is plain HTTP;
   path is WireGuard-encrypted. Prefer `tailscale serve` + TLS to enable Secure cookies.
@@ -217,3 +217,44 @@ receives the Docker socket, with resource limits and no-new-privileges. Added
 observed; it waits for the operator-supplied `LLM_API_KEY` in `.env.live`. The same-VM socket
 is documented as a local-dev compromise; host egress isolation is not enforced without
 firewall/root access.
+
+## Live pilot observed (2026-11-18)
+
+The single-VM profile ran a real Strix assessment, not a fixture:
+
+- Target: `http://100.124.184.116:3100` (Kevelry CVE-intelligence console, public read-only).
+- Project `local-next-3100`; build `local-3100-2026-11-17`; operator-attested identity
+  `local-next-3100` because the target has no `/api/meta`.
+- Run `69cbc6dc-a42b-4822-aac6-914b64f9073f`: quick baseline, live mode, unauthenticated,
+  reduced-scope acknowledgement.
+- Strix `1.7.1` completed in 36m 6s, 111 model requests, 7.9M tokens. The app recorded
+  0 findings, 4 of 12 planned checks tested, 7 not run, 1 needs review; coverage is
+  incomplete. Strix's own report says the target is anonymous-by-design and the requested
+  cross-account/tenant classes have no natural target.
+- Real artifacts produced: `run.json`, `coverage.json`, `findings.sarif`,
+  `penetration_test_report.md`, `strix.log`; `vulnerabilities.json` is only written when a
+  finding exists. The report lists unresolved `/showcase`, batch-vs-detail, method-override,
+  and server-component checks.
+- JSON and PDF exports generated successfully from the live run.
+- The run initially failed because the OpenCode Go endpoint requires
+  `x-opencode-session`, the worker image lacked the Docker CLI, and the sandbox image was not
+  cached. Those were fixed; the successful rerun used the pinned sandbox image
+  `ghcr.io/usestrix/strix-sandbox:1.4.1`.
+- `ingest_state` is `partial` for this historical run because it predates the clean-SARIF
+  handling that now treats a coverage-only SARIF document as a clean run; future clean runs
+  should ingest as complete.
+
+## Open backlog after live pilot
+
+- [ ] Test `http://100.124.184.116:8501` (BoxBox Replay) or an authenticated target; the
+      3100 target has no authentication/tenant boundary to exercise.
+- [ ] Complete the seven unresolved Strix coverage items, preferably as a follow-up run or
+      guided retest; do not treat them as clean.
+- [ ] Re-ingest or supersede the historical live run so the report does not inherit the old
+      `partial` ingest limitation.
+- [ ] Enforce sandbox egress on the host (or move the worker to a separate VM). Same-VM
+      Docker socket access remains a documented local-dev risk.
+- [ ] Rotate the operator's OpenCode Go key after the pilot; it was used from the exposed
+      chat value and must not be treated as a long-term secret.
+- [ ] Resolve or formally triage the npm `picomatch` ReDoS advisory (dev-only, no patched
+      version in the current Vite line).

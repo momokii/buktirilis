@@ -77,7 +77,12 @@ docker compose --profile demo up -d worker
 
 ## Limits
 
-Live execution is not proven until a real Strix scan is observed against the chosen target.
-Sandbox egress isolation is not fully enforced by this profile; the socket and same-host
+Live execution was observed on 2026-11-18 against `http://100.124.184.116:3100`: Strix
+`1.7.1` completed a quick unauthenticated run with 0 findings, 4 tested checks, 7 unresolved
+gaps, and full artifact/report/export ingestion. That proves the bundle works, not that the
+target is clean or fully covered.
+
+Sandbox egress isolation is still not enforced by this profile; the socket and same-host
 target make host services reachable unless the host firewall restricts the sandbox network.
-For production, use the dedicated worker + deny-by-default boundary from `docs/deployment.md`.
+The worker received the host Docker socket for this local test. For production, use the
+dedicated worker + deny-by-default boundary from `docs/deployment.md`.

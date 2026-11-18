@@ -69,7 +69,7 @@ Additional normalisation:
 | `vulnerabilities.json` | finding records: `id`, `title`, `severity`, `timestamp`, `description`, `impact`, `endpoint`, `method`, `evidence`, `technical_analysis`, `poc_description`, `remediation_steps`, `cwe`, `confidence`, … |
 | `vulnerabilities/<id>.md` | kept on the volume as raw provenance (not re-rendered as HTML) |
 | `coverage.json` | `entries[]` with `surface`, `risk_area`, `outcome`, `outcome_label`, `evidence`, `source=agent_reported`; `completeness.complete` + caveats; `gaps[]` |
-| `findings.sarif` | optional engine artifact; not exported as a first-class format |
+| `findings.sarif` | SARIF 2.1.0 sidecar; always emitted, may contain coverage-only results; not exported as a first-class format |
 | `http_exchanges.json` (optional) | resolves `http_exchange_ids` into captured evidence |
 
 Ingest rules:
@@ -85,6 +85,9 @@ Ingest rules:
 - Coverage completeness requires `coverage.completeness.complete` **and** no unaddressed
   planned/blocked/needs-review rows. Budget-stopped and auth-blocked runs cannot appear
   fully covered.
+- Strix 1.7.1 writes `vulnerabilities.json` only when at least one report exists. A
+  clean run therefore has a coverage-only `findings.sarif` and no findings index; that is
+  treated as clean, not as a missing artifact.
 - The parser tolerates missing optional fields and records unparsed artifacts explicitly.
 - Demo mode writes fixtures in the same artifact shapes and labels them everywhere:
   run mode `demo`, a report banner, and export notices. Demo and live runs are excluded from
@@ -108,12 +111,25 @@ Verified in this repository:
 - target policy denial, loopback guard, redirect re-validation;
 - seeded runs, retests against the real lab, and frozen exports.
 
-Unverified until a provisioned worker exists:
+Live evidence (2026-11-18):
 
-- execution against the real `v1.7.1` binary and container sandbox;
-- provider/model behaviour, spend estimation, and refusal/telemetry handling;
-- actual child-sandbox network isolation and cancellation cleanup;
-- real linked-HTTP-evidence sample shapes beyond the documented contract.
+- Strix `1.7.1` executed in the single-VM worker against
+  `http://100.124.184.116:3100`; run `69cbc6dc-a42b-4822-aac6-914b64f9073f` completed
+  in 36m 6s with 111 model requests and 7.9M tokens.
+- Artifacts observed: `run.json`, `coverage.json`, `findings.sarif`,
+  `penetration_test_report.md`, `strix.log`; no `vulnerabilities.json` because the run
+  reported zero findings.
+- The execution required `LLM_EXTRA_HEADERS` with `x-opencode-session` for the OpenCode Go
+  endpoint, a Docker CLI in the worker, and the pinned sandbox image
+  `ghcr.io/usestrix/strix-sandbox:1.4.1`.
+- The target's own report says it is anonymous-by-design, so no cross-account/tenant
+  boundary exists to test; seven items remained unresolved.
 
-The adapter is implemented, not proven live. Record the pinned image digest, CLI version
-output, and isolation probe results in the deployment runbook before calling the pilot ready.
+Still unverified:
+
+- actual child-sandbox network isolation and cancellation cleanup on this host;
+- real linked-HTTP-evidence sample shapes when findings exist;
+- provider refusal/telemetry behavior beyond this run.
+
+The adapter is now live-proven but not isolation-proven. Record the sandbox image digest and
+isolation probe results in the deployment runbook before calling the pilot production-safe.

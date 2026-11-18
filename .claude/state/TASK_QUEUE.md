@@ -83,3 +83,15 @@ or bypass a refused trust decision. API-only clients need explicit context/tool 
 | Scope               | [Exact description of what must be built]           |
 | Acceptance Criteria | [Measurable definition of done]                     |
 | Security Concerns   | [Security considerations for this task]             |
+
+## TASK-004 — single-VM live Strix pilot (2026-11-18)
+Status: DONE for the first run; follow-ups open.
+
+- Live target: `http://100.124.184.116:3100` (Kevelry, anonymous public read-only).
+- Run: `69cbc6dc-a42b-4822-aac6-914b64f9073f`; Strix 1.7.1 quick baseline; 36m 6s;
+  111 model requests; 0 findings; 4/12 tested; 7 not run; 1 needs review.
+- Fixed to get there: OpenCode Go `x-opencode-session` header, Docker CLI in the worker,
+  pinned sandbox image `ghcr.io/usestrix/strix-sandbox:1.4.1`, `STRIX_LLM`/`LLM_API_BASE`
+  child-process passthrough, clean-SARIF handling.
+- Follow-ups: run 8501 or an authenticated target; complete the seven gaps; re-ingest the
+  historical partial run; enforce egress; rotate the exposed key; triage npm audit.

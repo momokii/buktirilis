@@ -149,6 +149,11 @@ def load_artifact_bundle(run_dir: Path) -> ArtifactBundle:
     if sarif.is_file():
         try:
             bundle.sarif = json.loads(sarif.read_text("utf-8"))
+            if isinstance(bundle.sarif, dict) and not _sarif_has_findings(bundle.sarif):
+                # Strix 1.7.1 only writes vulnerabilities.json when a report exists.
+                # A SARIF document containing only coverage results is a clean run,
+                # not a missing findings index.
+                bundle.missing = [name for name in bundle.missing if name != "vulnerabilities.json"]
         except (ValueError, OSError):
             bundle.unparsed.append("findings.sarif")
 
@@ -167,6 +172,18 @@ def load_artifact_bundle(run_dir: Path) -> ArtifactBundle:
         except (ValueError, OSError):
             bundle.unparsed.append("http_exchanges.json")
     return bundle
+
+
+def _sarif_has_findings(document: dict[str, Any]) -> bool:
+    for run in document.get("runs") or []:
+        if not isinstance(run, dict):
+            continue
+        for result in run.get("results") or []:
+            if not isinstance(result, dict):
+                continue
+            if not str(result.get("ruleId") or "").startswith("strix-coverage/"):
+                return True
+    return False
 
 
 def normalise_severity(value: Any) -> str:

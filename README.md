@@ -12,10 +12,12 @@ This repository contains the first usable internal release: a React/TypeScript b
 interface, a FastAPI API, a PostgreSQL-backed worker, and a synthetic staging lab.
 
 > **Pilot status.** The demo path below is verified end to end in a real browser, including
-> real HTTP retests against the bundled lab. The live Strix adapter is implemented and
-> contract-tested but **live execution was not observed** in this environment (no model
-> credentials, no pinned Strix image). See [docs/strix-contract.md](docs/strix-contract.md)
-> and [docs/progress.md](docs/progress.md).
+> real HTTP retests against the bundled lab. A single-VM live Strix pilot is now observed:
+> Strix 1.7.1 completed a quick, unauthenticated baseline against
+> `http://100.124.184.116:3100` (0 confirmed findings, 7 unresolved coverage gaps). The
+> target is a public read-only CVE console, so the access-control profile is not a strong
+> finding target. See [docs/monodeploy.md](docs/monodeploy.md),
+> [docs/strix-contract.md](docs/strix-contract.md), and [docs/progress.md](docs/progress.md).
 
 ## What it does
 
@@ -217,7 +219,7 @@ cd web && npx playwright install chromium
 
 Verified in this environment (see [docs/progress.md](docs/progress.md) for exact output):
 
-- Backend: **100 tests** covering policy/OpenAPI overrides, redaction, replay assertions,
+- Backend: **103 tests** covering policy/OpenAPI overrides, redaction, replay assertions,
   retest/review semantics, verdict derivation, comparison buckets, pipeline, cancellation,
   revoked access, worker lease reconciliation, exports, API/CSRF/isolation, and the Strix
   subprocess contract.
@@ -235,7 +237,7 @@ Verified in this environment (see [docs/progress.md](docs/progress.md) for exact
 | `backend/app/services/` | Policy/OpenAPI, replay runner, recipes, retests, findings/comparison, ingest, releases, runs/queue, pipeline, exports, Strix adapter, demo seed |
 | `backend/app/routers/` | Auth, admin, projects/builds, runs/reports, findings/retests, exports |
 | `backend/migrations/` | Alembic schema (ordered, cycle-safe initial migration + follow-up) |
-| `backend/tests/` | 100 tests, including a real local HTTP lab fixture |
+| `backend/tests/` | 103 tests, including a real local HTTP lab fixture |
 | `lab/` | Synthetic Atlas Billing staging API with three deployments |
 | `web/src/` | React app, accessible UI primitives, report/finding/compare screens |
 | `web/e2e/` | Playwright browser and accessibility tests |

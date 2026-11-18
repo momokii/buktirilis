@@ -6,6 +6,7 @@ or model credentials. Live execution against the real pinned release is unverifi
 
 from __future__ import annotations
 
+import json
 import stat
 from pathlib import Path
 
@@ -31,6 +32,12 @@ mode_file = Path(__file__).with_name("fake-mode")
 mode = mode_file.read_text().strip() if mode_file.exists() else "exit0"
 if mode.startswith("sleep:"):
     time.sleep(float(mode.split(":", 1)[1]))
+json.dump(
+    {k: os.environ.get(k) for k in (
+        "STRIX_LLM", "LLM_API_KEY", "LLM_API_BASE", "LLM_EXTRA_HEADERS"
+    )},
+    open(os.path.join(os.path.dirname(__file__), "fake-env.json"), "w"),
+)
 target = os.path.join(os.getcwd(), "strix_runs", "fake-run")
 os.makedirs(os.path.join(target, "vulnerabilities"), exist_ok=True)
 json.dump(
@@ -149,6 +156,35 @@ def test_run_live_collects_artifacts_and_normalises_exit_two(
     normalized = normalize_result(result)
     assert normalized["status"] == "completed"
     assert any("Exit code 2" in limitation for limitation in normalized["limitations"])
+
+
+def test_run_live_passes_the_provider_contract_to_the_engine(
+    settings, fake_strix, tmp_path, monkeypatch
+):
+    local = settings.model_copy(
+        update={"strix_binary": str(fake_strix), "strix_model": "openai/test-model"}
+    )
+    monkeypatch.setenv("LLM_API_BASE", "https://provider.example/v1")
+    monkeypatch.setenv("LLM_EXTRA_HEADERS", '{"x-opencode-session":"test-session"}')
+    set_mode(fake_strix, "exit2")
+    result = run_live(
+        local,
+        target_url="http://127.0.0.1:8099/deployments/2024.10.1",
+        depth="quick",
+        budget_usd=1.0,
+        max_turns=5,
+        approved_origins=["http://127.0.0.1:8099"],
+        profile_name="Web & API Access Control",
+        run_dir=tmp_path,
+        spec_path=None,
+        timeout_seconds=30,
+        cancel_check=lambda: False,
+    )
+    assert result.exit_code == 2
+    engine_env = json.loads(fake_strix.with_name("fake-env.json").read_text())
+    assert engine_env["STRIX_LLM"] == "openai/test-model"
+    assert engine_env["LLM_API_BASE"] == "https://provider.example/v1"
+    assert engine_env["LLM_EXTRA_HEADERS"] == '{"x-opencode-session":"test-session"}'
 
 
 def test_run_live_cancellation_terminates_the_process_group(

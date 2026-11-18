@@ -19,7 +19,7 @@ make image-scan      # Trivy HIGH/CRITICAL on the built api/web images
 | Check | Command | Result |
 |---|---|---|
 | Python dependency audit | `cd backend && .venv/bin/pip-audit` | **No known vulnerabilities** after upgrading FastAPI 0.163.1, Starlette 1.10.0, python-multipart 0.0.33, cryptography 50.0.0, pytest 9.0.3, pypdf 6.21.4 |
-| Node dependency audit | `cd web && npm audit --audit-level=high` | **0 vulnerabilities** |
+| Node dependency audit | `cd web && npm audit --audit-level=high` | **FAIL on 2026-11-18**: 4 high-severity dev-only `picomatch`/`fdir`/`tinyglobby`/`vite` advisories (GHSA-fc5q-39xc-vjpf); no patched release in the installed line, `npm audit fix` offers only a breaking Vite downgrade. Runtime bundle is static nginx output, but the gate is not green. |
 | Python static analysis | `cd backend && .venv/bin/bandit -q -r app` | **0 findings** after replacing `xml.sax.escape`, removing `assert` on runtime invariants, and scoping the controlled subprocess calls |
 | Secret scan | `detect-secrets-hook --baseline .secrets.baseline $(git ls-files)` | **Passed**; baseline contains 20 reviewed false positives over 12 files (fake local/CI DB URLs, test passwords, migration revision hex) |
 | Secret scanner negative case | synthetic AWS-key fixture | **Failed as required** (exit 1); fixture deleted, not committed |
@@ -51,7 +51,7 @@ its location only.
 
 `.github/workflows/ci.yml` runs:
 
-1. Backend: frozen install, Ruff, format check, mypy, 100 tests against PostgreSQL.
+1. Backend: frozen install, Ruff, format check, mypy, 103 tests against PostgreSQL.
 2. Frontend: `npm ci`, type check, production build.
 3. Security: pip-audit, npm audit, Bandit, secret scan, image build, Trivy image scan.
 
@@ -68,3 +68,6 @@ seeded database; it is already exercised against the deployed tailnet URL before
 - Secret scanning cannot prove absence of secrets; it is one gate, not a guarantee.
 - `COOKIE_SECURE=false` on the current plain-HTTP tailnet deployment remains a deployment caveat,
   not a code weakness. Prefer Tailscale Serve or a TLS proxy before widening access.
+- Node audit has an open dev-only ReDoS advisory with no patched version in the current Vite
+  dependency line (reviewed 2026-11-18). Do not mark the Security Gate clean until it is fixed
+  or an owner-approved, reachability-based deferral is recorded.

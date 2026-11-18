@@ -119,3 +119,15 @@ append-only guided-step revisions with reviewer editing/submission revision trac
 portable one-command demo deployment (`scripts/deploy.sh`, `docs/deploying-elsewhere.md`).
 Final checks: 100 backend tests, 14 deployed browser tests, security audits and image scan
 clean. Live Strix and isolation remain externally blocked.
+
+## 2026-11-18 — live Strix pilot on the single-VM bundle
+The worker-only Docker-socket profile (`compose.mono.yaml`) was built with Strix 1.7.1 and
+the pinned sandbox image. A live quick baseline ran against `http://100.124.184.116:3100`
+(run `69cbc6dc-a42b-4822-aac6-914b64f9073f`) in 36m 6s with 111 model requests and 7.9M
+tokens. It recorded 0 findings, 4 of 12 planned checks tested, 7 not run, and 1 needs review;
+the target is anonymous public CVE data, so the access-control profile has no natural object
+boundary. The real artifacts (`run.json`, `coverage.json`, `findings.sarif`,
+`penetration_test_report.md`, `strix.log`) and JSON/PDF exports were verified. Fixes made
+along the way: OpenCode Go session header, Docker CLI in the worker, `STRIX_LLM`/base/header
+passthrough, and clean-SARIF handling. 103 backend tests pass; npm audit now fails on a
+dev-only picomatch/ReDoS advisory; same-VM socket/e gress isolation remains unproven.

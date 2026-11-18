@@ -33,8 +33,10 @@ services:
       STRIX_VERSION: ${STRIX_VERSION:-1.7.1}
       STRIX_BINARY: /srv/.venv/bin/strix
       LLM_API_BASE: ${LLM_API_BASE:-https://opencode.ai/inference/go/openai/v1}
-      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_EXTRA_HEADERS: '{"x-opencode-session":"00000000-0000-4000-8000-000000000001"}'
       STRIX_RUNS_ROOT: /srv/var/strix_runs
+    group_add:
+      - "${DOCKER_GID:-984}"   # host docker group; socket is root-equivalent on this VM
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - artifacts:/srv/var/artifacts

@@ -9,6 +9,7 @@ RUN apt-get update \
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    UV_HTTP_TIMEOUT=300 \
     PATH="/srv/.venv/bin:$PATH" \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy
@@ -19,7 +20,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 ARG INSTALL_STRIX=false
 ARG TARGETARCH=amd64
-RUN if [ "$INSTALL_STRIX" = "true" ]; then \
+RUN set -eu; if [ "$INSTALL_STRIX" = "true" ]; then \
       case "$TARGETARCH" in \
         amd64) wheel="strix_agent-1.7.1-py3-none-manylinux_2_17_x86_64.whl" ;; \
         arm64) wheel="strix_agent-1.7.1-py3-none-manylinux_2_17_aarch64.whl" ;; \
@@ -27,6 +28,16 @@ RUN if [ "$INSTALL_STRIX" = "true" ]; then \
       esac; \
       uv pip install --python /srv/.venv/bin/python \
         "https://github.com/usestrix/strix/releases/download/v1.7.1/$wheel"; \
+      apt-get update; \
+      apt-get install -y --no-install-recommends ca-certificates curl; \
+      rm -rf /var/lib/apt/lists/*; \
+      case "$TARGETARCH" in \
+        amd64) docker_arch="x86_64" ;; \
+        arm64) docker_arch="aarch64" ;; \
+        *) echo "unsupported architecture: $TARGETARCH" >&2; exit 1 ;; \
+      esac; \
+      curl -fsSL "https://download.docker.com/linux/static/stable/$docker_arch/docker-27.5.1.tgz" \
+        | tar -xz --strip-components=1 -C /usr/local/bin docker/docker; \
     fi
 
 COPY alembic.ini ./

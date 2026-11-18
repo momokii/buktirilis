@@ -124,12 +124,14 @@ def live_preflight(settings: Settings) -> LivePreflight:
                 }
             )
     docker = shutil.which("docker")
+    socket = Path("/var/run/docker.sock")
+    runtime = docker or (str(socket) if socket.exists() else "")
     checks.append(
         {
             "code": "container_runtime",
             "label": "Container runtime available to the worker",
-            "status": "pass" if docker else "fail",
-            "detail": docker or "docker CLI not found on the worker",
+            "status": "pass" if runtime else "fail",
+            "detail": runtime or "neither the docker CLI nor /var/run/docker.sock is available",
             "recovery": "Provision the isolated worker runtime described in docs/deployment.md.",
         }
     )
@@ -281,7 +283,11 @@ def run_live(
     for passthrough in (
         "STRIX_LLM",
         "LLM_API_KEY",
+        "LLM_API_BASE",
+        "LLM_EXTRA_HEADERS",
+        "LLM_EXTRA_BODY",
         "OPENAI_API_KEY",
+        "OPENAI_BASE_URL",
         "ANTHROPIC_API_KEY",
         "DOCKER_HOST",
         "HTTP_PROXY",
@@ -291,6 +297,8 @@ def run_live(
         value = os.environ.get(passthrough)
         if value:
             env[passthrough] = value
+    if not env.get("STRIX_LLM") and settings.strix_model:
+        env["STRIX_LLM"] = settings.strix_model
     started = time.monotonic()
     timed_out = False
     canceled = False

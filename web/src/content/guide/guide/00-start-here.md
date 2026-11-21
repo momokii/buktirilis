@@ -7,7 +7,8 @@ assessment, read the result, or hand the evidence to someone else.
 
 This is the user guide for the app at your deployment URL. It covers projects, builds, target
 scope, test identities, runs, findings, retests, comparisons, exports, roles, and the limits of
-the result.
+the result. The guide itself is public: you can read it from the login page or at `/guide`
+without signing in. Project and scan data remain protected.
 
 ## What it does not cover
 

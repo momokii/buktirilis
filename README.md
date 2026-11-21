@@ -1,3 +1,5 @@
+<p align="center"><img src="web/public/logo.svg" alt="BuktiRilis" width="244"></p>
+
 # BuktiRilis
 
 **See what was tested. Verify what changed.**
@@ -229,8 +231,8 @@ Verified in this environment (see [docs/progress.md](docs/progress.md) for exact
 - Frontend: TypeScript build and **14 Playwright tests** at 1440 px and 390 px, including
   keyboard tab navigation, both retest paths, frozen export download, comparison, and an
   axe-core scan with no serious/critical violations.
-- User guide: **12 guide tests** covering the in-app page, search, route/label drift checks,
-  TOC focus, axe, and 320/390 px reflow (`cd web && npx playwright test e2e/guide.spec.ts`).
+- User guide: **13 guide tests** covering public access, search, route/label drift checks,
+  TOC focus, axe, favicon, and 320/390 px reflow (`cd web && npx playwright test e2e/guide.spec.ts`).
 - PDF export: 6 pages for the demo release-scan snapshot; CSV and JSON parse and agree.
 - Fresh database: migrate + seed creates 4 users, 1 project, 3 runs, 4 findings, and
   4 frozen exports without a model provider.

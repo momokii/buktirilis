@@ -3,7 +3,7 @@
 This is a pointer page. The canonical end-to-end user guide lives with the web app so it can
 ship inside the deployed SPA and be read on GitHub from the same source:
 
-- In the app: `/guide` (after signing in)
+- In the app: `/guide` (public; no sign-in required)
 - In the repository: [`web/src/content/guide/guide/`](../web/src/content/guide/guide/)
 
 Installation, deployment, TLS, backup, and worker provisioning are separate:

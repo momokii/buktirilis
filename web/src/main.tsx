@@ -1,4 +1,5 @@
 import { StrictMode } from "react";
+import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 import "./styles.css";
@@ -16,6 +17,7 @@ import { ComparePage } from "./pages/Compare";
 import { ProjectSettingsPage, SettingsPage } from "./pages/Settings";
 import { AdminPage } from "./pages/Admin";
 import { GuideIndexPage, GuidePage } from "./pages/Guide";
+import { GuideShell } from "./GuideShell";
 import { Navigate as RouterNavigate } from "react-router-dom";
 
 function RequireAuth() {
@@ -33,6 +35,12 @@ function HomeRedirect() {
   return <Navigate to="/projects" replace />;
 }
 
+function GuideRoute({ children }: { children: ReactNode }) {
+  const { session, loading } = useAuth();
+  if (loading) return <AppLoading />;
+  return session ? <AppShell>{children}</AppShell> : <GuideShell>{children}</GuideShell>;
+}
+
 function LoginRoute() {
   const { session } = useAuth();
   const [params] = useSearchParams();
@@ -47,6 +55,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginRoute />} />
+      <Route path="/guide" element={<GuideRoute><GuideIndexPage /></GuideRoute>} />
+      <Route path="/guide/:slug" element={<GuideRoute><GuidePage /></GuideRoute>} />
       <Route element={<RequireAuth />}>
         <Route path="/" element={<HomeRedirect />} />
         <Route path="/projects" element={<ProjectsPage />} />
@@ -61,8 +71,6 @@ function AppRoutes() {
           <Route path="settings" element={<ProjectSettingsPage />} />
         </Route>
         <Route path="/runs" element={<RunsIndexPage />} />
-        <Route path="/guide" element={<GuideIndexPage />} />
-        <Route path="/guide/:slug" element={<GuidePage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="*" element={<Navigate to="/projects" replace />} />

@@ -10,6 +10,8 @@ This is ready for authorized local use, not for public/untrusted production.
 - [x] Run preflight, quotas, worker lease, cancellation, interruption, evidence and exports
 - [x] Single-VM Compose profile (`compose.mono.yaml`) with worker-only Docker socket,
       pinned Strix 1.7.1, Docker CLI, resource limits, and no-new-privileges
+- [x] Brand: proof-tag mark in `web/public/`, used in the app header, login, public guide,
+      favicon, Apple touch icon, and web manifest
 - [x] Live pilot: target `http://100.124.184.116:3100`, run
       `69cbc6dc-a42b-4822-aac6-914b64f9073f`, Strix 1.7.1 completed in 36m 6s
       (111 requests, 7.9M tokens), 0 findings. The 4 tested / 7 not-run rows are
@@ -20,7 +22,8 @@ This is ready for authorized local use, not for public/untrusted production.
 - [x] Research note and corrected live-pilot interpretation
 - [x] Fresh-database migrate + seed and documentation
 - [x] User guide: 16 canonical Markdown pages under `web/src/content/guide/guide/`, rendered at
-      `/guide` and readable on GitHub; `docs/user-guide.md` is a pointer. 12 guide tests pass.
+      the public `/guide` route and readable on GitHub; `docs/user-guide.md` is a pointer.
+      13 guide tests pass. Brand mark/favicon/install icons are in `web/public/`.
 
 ## In Progress / Next
 - [ ] Run the profile against the synthetic lab with two identities, fixtures, and an owner
@@ -30,7 +33,7 @@ This is ready for authorized local use, not for public/untrusted production.
 - [ ] Re-ingest the historical run; its real artifacts now load as `status=complete`.
 - [ ] Record the npm dev-only deferral; no patched `picomatch` exists.
 - [ ] Keep `web/src/content/guide` and `anchors.ts` current when routes, labels, statuses, or
-      retest paths change; run `cd web && npx playwright test e2e/guide.spec.ts`.
+      retest paths change; run `cd web && npx playwright test e2e/guide.spec.ts` (13 tests).
 
 ## Accepted local risks / Blocked
 - Same-VM Docker socket is root-equivalent; the sandbox has `NET_ADMIN`/`NET_RAW`,

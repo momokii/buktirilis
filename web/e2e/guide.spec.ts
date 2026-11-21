@@ -205,6 +205,20 @@ async function signIn(page: Page) {
   await expect(page.getByRole("heading", { name: "Projects", level: 1 })).toBeVisible();
 }
 
+test("guide is public and reachable from the login page", async ({ page }) => {
+  await page.goto("/guide");
+  await expect(page.getByRole("heading", { name: "Guide", level: 1 })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+  await expect(page.locator("img.brand-logo")).toHaveAttribute("src", "/logo-mark.svg");
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", "/favicon.svg");
+  const favicon = await page.request.get("/favicon.svg");
+  expect(favicon.status()).toBe(200);
+  await page.goto("/login");
+  await page.getByRole("link", { name: "Read the user guide" }).click();
+  await expect(page.getByRole("heading", { name: "Guide", level: 1 })).toBeVisible();
+  await expect(page).toHaveTitle(/Guide/);
+});
+
 test("guide is reachable from the main navigation and search works", async ({ page }) => {
   await signIn(page);
   await page.getByRole("link", { name: "Guide", exact: true }).click();

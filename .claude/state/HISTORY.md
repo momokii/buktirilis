@@ -149,3 +149,11 @@ app after installation; installation remains separate. Added grouped index, sear
 titles, TOC with focus management, previous/next links, and `docs/user-guide.md` as a pointer.
 Verification: web typecheck/build pass; 12 Playwright guide tests pass, including route/label
 drift checks, axe, TOC focus, and 320/390 px reflow.
+
+## 2026-11-21 — public guide and brand identity
+The guide is now public at `/guide` and linked from the login screen; signed-in users still
+see it inside the app shell. Added the BuktiRilis proof-tag mark (`web/public/logo-mark.svg`),
+full wordmark (`logo.svg`), favicon, Apple touch icon, 192/512 install icons, and web manifest.
+The app header, login card, and public guide use the same mark. Verification: web
+typecheck/build pass; 13 guide tests pass, including anonymous access, favicon, search, axe,
+TOC focus, and 320/390 px reflow.

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../auth";
 import { errorMessage } from "../api";
 import { Button, Field, Notice, TextInput } from "../ui";
@@ -32,9 +33,7 @@ export function LoginPage() {
     <div className="auth-page">
       <main className="auth-card" aria-labelledby="auth-title">
         <div className="auth-brand">
-          <span className="brand-mark" aria-hidden="true">
-            BR
-          </span>
+          <img className="brand-logo auth-logo" src="/logo-mark.svg" alt="" width={38} height={38} />
           <div>
             <h1 id="auth-title" style={{ fontSize: "1.2rem" }}>
               BuktiRilis
@@ -113,7 +112,7 @@ export function LoginPage() {
         )}
         <p className="auth-footer">
           Authorized internal use only. Sessions are cookie-based; every action is checked
-          server-side.
+          server-side. <Link to="/guide">Read the user guide</Link>.
         </p>
       </main>
     </div>

@@ -1,6 +1,7 @@
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useAuth } from "./auth";
+import { Brand } from "./Brand";
 import { Button, Loading } from "./ui";
 
 export function AppShell({ children }: { children?: ReactNode }) {
@@ -14,12 +15,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
       </a>
       <header className="topbar">
         <div className="topbar-inner">
-          <Link to="/projects" className="brand">
-            <span className="brand-mark" aria-hidden="true">
-              BR
-            </span>
-            BuktiRilis
-          </Link>
+          <Brand />
           <nav className="nav" aria-label="Main">
             <NavLink to="/projects" className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
               Projects

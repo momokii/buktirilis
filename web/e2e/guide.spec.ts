@@ -184,6 +184,10 @@ test.describe("guide content", () => {
       for (const block of page.result.blocks) {
         if (block.kind === "table") {
           expect(block.caption, `${page.slug} has a table without a caption`).toBeTruthy();
+          expect(
+            block.rows.some((row) => row.every((cell) => /^:?-{3,}:?$/.test(cell))),
+            `${page.slug} rendered a table separator as data`,
+          ).toBe(false);
         }
       }
     }
@@ -217,6 +221,14 @@ test("guide is public and reachable from the login page", async ({ page }) => {
   await page.getByRole("link", { name: "Read the user guide" }).click();
   await expect(page.getByRole("heading", { name: "Guide", level: 1 })).toBeVisible();
   await expect(page).toHaveTitle(/Guide/);
+
+  const axe = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+    .analyze();
+  const serious = axe.violations.filter(
+    (violation) => violation.impact === "serious" || violation.impact === "critical",
+  );
+  expect(serious, JSON.stringify(serious.map((violation) => violation.id))).toEqual([]);
 });
 
 test("guide is reachable from the main navigation and search works", async ({ page }) => {
@@ -255,15 +267,17 @@ test("guide page has one H1, a page title, working TOC focus, and no axe issues"
   expect(serious, JSON.stringify(serious.map((violation) => violation.id))).toEqual([]);
 });
 
-test("guide reflows at 320px and 390px with no page overflow", async ({ page }) => {
+test("guide index and page reflow at 320px and 390px without page overflow", async ({ page }) => {
   await signIn(page);
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 844 });
-    await page.goto("/guide/glossary");
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    );
-    expect(overflow, `horizontal overflow at ${width}px`).toBeLessThanOrEqual(1);
+    for (const path of ["/guide", "/guide/glossary"]) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(overflow, `horizontal overflow at ${width}px on ${path}`).toBeLessThanOrEqual(1);
+    }
   }
 });

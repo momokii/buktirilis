@@ -119,3 +119,12 @@ Status: DONE.
   reflow.
 - Follow-up: update the guide and `anchors.ts` whenever a route, UI label, status, or retest
   path changes.
+
+## TASK-007 — guide UI revamp (2026-11-21)
+Status: DONE.
+
+- Persistent grouped guide sidebar and public access; three-column desktop reading layout;
+  mobile page menu and TOC; task-oriented index/search; active TOC.
+- Fixed the parser so table header separators never render as data.
+- Added desktop/mobile screenshots and reflow tests for both index and page.
+- Verification: web typecheck/build pass; 13 guide Playwright tests pass.

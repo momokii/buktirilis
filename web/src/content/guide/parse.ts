@@ -241,7 +241,7 @@ export function parseGuide(source: string, pageSlug = "guide"): ParsedGuide {
         index += 1;
         continue;
       }
-      index += 1;
+      index += 2;
       const rows: string[][] = [];
       while (index < lines.length && lines[index].startsWith("|")) {
         const row = cells(lines[index]);
@@ -262,7 +262,7 @@ export function parseGuide(source: string, pageSlug = "guide"): ParsedGuide {
         index += 1;
         continue;
       }
-      index += 1;
+      index += 2;
       const rows: string[][] = [];
       while (index < lines.length && lines[index].startsWith("|")) {
         const row = cells(lines[index]);

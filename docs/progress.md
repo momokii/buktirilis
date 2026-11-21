@@ -299,3 +299,19 @@ invoices, export and two-actor approval), not `:8501`, which has no account/logi
   web manifest in `web/public/`; the app header, login card, and public guide share the mark.
 - Installation remains separate in `docs/deploying-elsewhere.md`, `docs/deployment.md`, and
   `docs/monodeploy.md`.
+
+## Guide UI revamp (2026-11-21)
+
+- Replaced the card-stack guide index with a docs layout: persistent grouped sidebar,
+  task-oriented start path, compact directory, and inline search.
+- Guide pages now use a three-column reading layout (sidebar, 68ch article, sticky TOC) on
+  desktop and a disclosure-based page menu with a mobile TOC on narrow screens.
+- Added active TOC tracking, page-level Previous/Next navigation, sentence-case table
+  headers, and table separator parsing coverage.
+- The public guide is reachable without sign-in and linked from the login screen.
+- Added the proof-tag brand mark, wordmark, favicon, Apple touch icon, install icons, and
+  web manifest.
+- Desktop and mobile screenshots: `docs/screenshots/guide-index-desktop.png`,
+  `guide-page-desktop.png`, `guide-page-mobile.png`.
+- Verification: web typecheck/build pass; 13 guide Playwright tests pass, including public
+  access, favicon, search, axe, TOC focus, table parsing, and 320/390 px index/page reflow.

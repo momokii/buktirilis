@@ -267,6 +267,15 @@ test("guide page has one H1, a page title, working TOC focus, and no axe issues"
   expect(serious, JSON.stringify(serious.map((violation) => violation.id))).toEqual([]);
 });
 
+test("mobile guide menu closes after choosing a page", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/guide/glossary");
+  await page.getByText("Browse guide pages").click();
+  await page.getByRole("link", { name: "Export evidence", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Export evidence", level: 1 })).toBeVisible();
+  await expect(page.locator("details.guide-mobile-nav")).not.toHaveAttribute("open", "");
+});
+
 test("guide index and page reflow at 320px and 390px without page overflow", async ({ page }) => {
   await signIn(page);
   for (const width of [320, 390]) {

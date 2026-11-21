@@ -44,7 +44,12 @@ export function GuideSidebar({ mobile = false }: { mobile?: boolean }) {
 
 export function GuideMobileNav() {
   return (
-    <details className="guide-mobile-nav">
+    <details
+      className="guide-mobile-nav"
+      onClick={(event) => {
+        if ((event.target as HTMLElement).closest("a")) event.currentTarget.open = false;
+      }}
+    >
       <summary>Browse guide pages</summary>
       <div className="guide-mobile-nav-panel">
         <GuideSidebar mobile />
@@ -112,7 +117,12 @@ export function GuideToc({ page }: { page: GuidePage }) {
 export function GuideMobileToc({ page }: { page: GuidePage }) {
   if (page.headings.length === 0) return null;
   return (
-    <details className="guide-mobile-toc">
+    <details
+      className="guide-mobile-toc"
+      onClick={(event) => {
+        if ((event.target as HTMLElement).closest("a")) event.currentTarget.open = false;
+      }}
+    >
       <summary>On this page</summary>
       <ul>
         {page.headings.map((heading) => (

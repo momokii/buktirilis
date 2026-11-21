@@ -54,7 +54,7 @@ function SearchResults({ query }: { query: string }) {
             <li key={`${page.slug}-${heading?.id ?? "page"}-${index}`}>
               <Link to={`/guide/${page.slug}${heading ? `#${heading.id}` : ""}`}>
                 {page.title}
-                {heading ? <span className="guide-result-section"> → {heading.text}</span> : null}
+                {heading ? <span className="guide-result-section"> / {heading.text}</span> : null}
               </Link>
             </li>
           ))}

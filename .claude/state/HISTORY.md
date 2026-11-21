@@ -155,7 +155,7 @@ The guide is now public at `/guide` and linked from the login screen; signed-in 
 see it inside the app shell. Added the BuktiRilis proof-tag mark (`web/public/logo-mark.svg`),
 full wordmark (`logo.svg`), favicon, Apple touch icon, 192/512 install icons, and web manifest.
 The app header, login card, and public guide use the same mark. Verification: web
-typecheck/build pass; 13 guide tests pass, including anonymous access, favicon, search, axe,
+typecheck/build pass; 14 guide tests pass, including anonymous access, favicon, search, axe,
 TOC focus, and 320/390 px reflow.
 
 ## 2026-11-21 — guide UI revamp
@@ -163,4 +163,4 @@ Rebuilt the guide presentation around a docs layout: persistent grouped sidebar,
 start path, compact directory, public access from login, three-column article/TOC layout on
 desktop, disclosure-based mobile navigation and TOC, active section tracking, and cleaner
 tables. Added visual review screenshots and checked overview/page/table behavior at 1440,
-1024, 390, and 320 px. Verification: web typecheck/build pass; 13 guide tests pass.
+1024, 390, and 320 px. Verification: web typecheck/build pass; 14 guide tests pass.

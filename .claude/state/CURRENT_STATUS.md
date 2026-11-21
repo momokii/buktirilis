@@ -23,7 +23,7 @@ This is ready for authorized local use, not for public/untrusted production.
 - [x] Fresh-database migrate + seed and documentation
 - [x] User guide: 16 canonical Markdown pages under `web/src/content/guide/guide/`, rendered at
       the public `/guide` route and readable on GitHub; `docs/user-guide.md` is a pointer.
-      13 guide tests pass. Brand mark/favicon/install icons are in `web/public/`; the guide has a
+      14 guide tests pass. Brand mark/favicon/install icons are in `web/public/`; the guide has a
       persistent docs sidebar, mobile navigation/TOC, active section tracking, and public access.
 
 ## In Progress / Next
@@ -34,7 +34,7 @@ This is ready for authorized local use, not for public/untrusted production.
 - [ ] Re-ingest the historical run; its real artifacts now load as `status=complete`.
 - [ ] Record the npm dev-only deferral; no patched `picomatch` exists.
 - [ ] Keep `web/src/content/guide` and `anchors.ts` current when routes, labels, statuses, or
-      retest paths change; run `cd web && npx playwright test e2e/guide.spec.ts` (13 tests).
+      retest paths change; run `cd web && npx playwright test e2e/guide.spec.ts` (14 tests).
 
 ## Accepted local risks / Blocked
 - Same-VM Docker socket is root-equivalent; the sandbox has `NET_ADMIN`/`NET_RAW`,

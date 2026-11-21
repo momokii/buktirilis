@@ -293,7 +293,7 @@ invoices, export and two-actor approval), not `:8501`, which has no account/logi
 - `web/e2e/guide.spec.ts` checks manifest/file one-to-one, parser problems, H1/heading rules,
   anchors and links, app-route coverage, UI-label drift, table captions, size budget, search,
   TOC focus, axe, and 320/390 px reflow.
-- Verification: typecheck/build pass; 13 guide Playwright tests pass against the deployed
+- Verification: typecheck/build pass; 14 guide Playwright tests pass against the deployed
   `http://100.124.184.116:8088`. The guide is public at `/guide`; the login page links to it.
 - Brand assets: proof-tag mark and wordmark, SVG favicon, Apple touch icon, 192/512 icons, and
   web manifest in `web/public/`; the app header, login card, and public guide share the mark.
@@ -313,5 +313,5 @@ invoices, export and two-actor approval), not `:8501`, which has no account/logi
   web manifest.
 - Desktop and mobile screenshots: `docs/screenshots/guide-index-desktop.png`,
   `guide-page-desktop.png`, `guide-page-mobile.png`.
-- Verification: web typecheck/build pass; 13 guide Playwright tests pass, including public
+- Verification: web typecheck/build pass; 14 guide Playwright tests pass, including public
   access, favicon, search, axe, TOC focus, table parsing, and 320/390 px index/page reflow.

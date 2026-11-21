@@ -67,6 +67,7 @@ For other coding agents, root `AGENTS.md` supplies the shared startup contract.
 | Strix contract, artifacts, exit codes, demo/live boundary | `docs/strix-contract.md` |
 | Decisions and rationale | `docs/decisions.md` |
 | Deployment, isolation, backup/restore, rotation | `docs/deployment.md` |
+| End-to-end user guide | `docs/user-guide.md` (in-app `/guide`) |
 | Product and demo walkthrough | `README.md` |
 
 ## Maintenance Rules for This File

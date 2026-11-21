@@ -72,3 +72,7 @@ When the stack is confirmed, specialize these standards with concrete language a
 framework conventions, formatter/linter/type-check configuration references, and
 observed implementation patterns citing representative file paths. None exist yet;
 record verified paths when created rather than inventing examples of project code.
+
+- User-facing workflow changes (routes, labels, statuses, retest paths) update
+  `web/src/content/guide` and `web/src/content/guide/anchors.ts`, then run
+  `cd web && npx playwright test e2e/guide.spec.ts`.

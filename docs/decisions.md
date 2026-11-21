@@ -154,3 +154,22 @@ form-based cross-site requests without extra state.
 
 **Consequences.** Rotating the deployment key invalidates sessions and stored credential
 ciphertexts. Login attempts are retained for rate limiting and audit hashes, not raw IPs.
+
+## ADR-011 — One Markdown guide, rendered in the SPA and on GitHub
+
+**Decision.** Keep the end-to-end user guide as plain Markdown under
+`web/src/content/guide/guide/`. The SPA loads it with Vite `?raw` and a small in-repository
+parser that emits React elements; GitHub renders the same files for repository readers.
+`docs/user-guide.md` is a pointer, not a second copy. Installation and deployment stay in
+`docs/deploying-elsewhere.md`, `docs/deployment.md`, and `docs/monodeploy.md`.
+
+**Why.** The web image is built from the `web/` context, so a guide under `docs/` would never
+ship to the deployed app. A second TSX-only copy would drift. The chosen shape gives users
+help at the workflow they are using, keeps a reviewable plain-text source, and avoids a new
+Markdown dependency or CSP change. The parser deliberately supports only the blocks the guide
+uses and reports unsupported content instead of guessing.
+
+**Consequences.** The parser is a maintained surface; `web/e2e/guide.spec.ts` checks file
+coverage, heading structure, anchors, links, route/label drift, table captions, and size.
+A route, label, status, or retest-path change must update the guide and its anchors. The guide
+is adjacent to installation instructions by link, not duplicated.

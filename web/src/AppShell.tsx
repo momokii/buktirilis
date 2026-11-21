@@ -27,6 +27,9 @@ export function AppShell({ children }: { children?: ReactNode }) {
             <NavLink to="/runs" className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
               Runs
             </NavLink>
+            <NavLink to="/guide" className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
+              Guide
+            </NavLink>
             <NavLink to="/settings" className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
               Settings
             </NavLink>

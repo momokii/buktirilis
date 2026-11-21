@@ -123,7 +123,9 @@ Live evidence (2026-11-18):
   endpoint, a Docker CLI in the worker, and the pinned sandbox image
   `ghcr.io/usestrix/strix-sandbox:1.4.1`.
 - The target's own report says it is anonymous-by-design, so no cross-account/tenant
-  boundary exists to test; seven items remained unresolved.
+  boundary exists to test. Of the seven coverage gaps, one is an unexecuted proxy-blocked
+  test and six are missing per-risk-class coverage rows; they are not seven untested
+  surfaces.
 
 Still unverified:
 

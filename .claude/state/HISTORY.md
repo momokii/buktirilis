@@ -131,3 +131,21 @@ boundary. The real artifacts (`run.json`, `coverage.json`, `findings.sarif`,
 along the way: OpenCode Go session header, Docker CLI in the worker, `STRIX_LLM`/base/header
 passthrough, and clean-SARIF handling. 103 backend tests pass; npm audit now fails on a
 dev-only picomatch/ReDoS advisory; same-VM socket/e gress isolation remains unproven.
+
+## 2026-11-18 — research corrected the live-pilot interpretation
+Read-only research (`docs/research/2026-11-18-monodeploy-next-steps.md`) verified that the
+seven coverage gaps are one real test plus six bookkeeping/`unrecorded_risk_class` rows, that
+the 4/12 plan-row count is not an access-control profile denominator (the run had no
+identities), that the sandbox uses the default bridge with host-gateway access, that :8501 has
+no account surface, and that the npm picomatch advisory has no patched release. The parent
+thread confirmed the current loader returns `status=complete` on the real clean artifacts, so
+the old `partial` result is historical, not structural. The socket-bearing live worker was
+stopped pending boundary hardening; the next profile-faithful target is the synthetic lab.
+
+## 2026-11-20 — end-to-end user guide
+Added 16 canonical Markdown pages under `web/src/content/guide/guide/`, rendered by a strict
+dependency-free parser at `/guide` and readable on GitHub. The guide is a how-to for using the
+app after installation; installation remains separate. Added grouped index, search, page
+titles, TOC with focus management, previous/next links, and `docs/user-guide.md` as a pointer.
+Verification: web typecheck/build pass; 12 Playwright guide tests pass, including route/label
+drift checks, axe, TOC focus, and 320/390 px reflow.

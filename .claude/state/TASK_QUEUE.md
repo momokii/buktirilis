@@ -89,9 +89,32 @@ Status: DONE for the first run; follow-ups open.
 
 - Live target: `http://100.124.184.116:3100` (Kevelry, anonymous public read-only).
 - Run: `69cbc6dc-a42b-4822-aac6-914b64f9073f`; Strix 1.7.1 quick baseline; 36m 6s;
-  111 model requests; 0 findings; 4/12 tested; 7 not run; 1 needs review.
+  111 model requests; 0 findings; 4 tested / 7 not-run plan rows. This was adapter evidence,
+  not a 4/12 access-control profile result; the run had no identities.
 - Fixed to get there: OpenCode Go `x-opencode-session` header, Docker CLI in the worker,
   pinned sandbox image `ghcr.io/usestrix/strix-sandbox:1.4.1`, `STRIX_LLM`/`LLM_API_BASE`
   child-process passthrough, clean-SARIF handling.
-- Follow-ups: run 8501 or an authenticated target; complete the seven gaps; re-ingest the
-  historical partial run; enforce egress; rotate the exposed key; triage npm audit.
+- Worker is running; the operator accepted the local-only same-VM socket risk and rejected
+  a separate VM. Do not expose the host publicly.
+- Follow-ups: manual batch/detail replay (the one real gap); synthetic-lab run with two
+  identities; re-ingest the now-loadable historical run; npm dev-only deferral; rotate key.
+  Do not use `:8501` for access-control coverage; it has no account surface.
+
+## TASK-005 — single-VM boundary decision (2026-11-18)
+Status: ACCEPTED LOCAL-ONLY; worker running.
+
+Research found the sandbox is on the default bridge with NET_ADMIN/NET_RAW,
+host.docker.internal, and no host firewall; the host runs other stacks and :8501 is published
+on 0.0.0.0. The socket-bearing worker was stopped. Choose dedicated VM or isolated lab-only
+network, then probe inside the sandbox network before restarting.
+
+## TASK-006 — end-to-end user guide (2026-11-20)
+Status: DONE.
+
+- Canonical Markdown in `web/src/content/guide/guide/` (16 pages), rendered in-app at
+  `/guide` by a dependency-free parser and readable on GitHub; `docs/user-guide.md` is a
+  pointer. Installation remains in the deployment documents.
+- Verification: web typecheck/build pass; 12 guide Playwright tests pass, including content
+  drift checks, search, TOC focus, axe, and 320/390 px reflow.
+- Follow-up: update the guide and `anchors.ts` whenever a route, UI label, status, or retest
+  path changes.

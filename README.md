@@ -14,10 +14,13 @@ interface, a FastAPI API, a PostgreSQL-backed worker, and a synthetic staging la
 > **Pilot status.** The demo path below is verified end to end in a real browser, including
 > real HTTP retests against the bundled lab. A single-VM live Strix pilot is now observed:
 > Strix 1.7.1 completed a quick, unauthenticated baseline against
-> `http://100.124.184.116:3100` (0 confirmed findings, 7 unresolved coverage gaps). The
-> target is a public read-only CVE console, so the access-control profile is not a strong
-> finding target. See [docs/monodeploy.md](docs/monodeploy.md),
+> `http://100.124.184.116:3100` (0 confirmed findings). The result is adapter evidence, not
+> a profile result: the target is public read-only and the run had no identities. The
+> socket-bearing worker runs on the same VM; the local-only risk is accepted. The next
+> profile-faithful target is the synthetic lab. See [docs/monodeploy.md](docs/monodeploy.md),
 > [docs/strix-contract.md](docs/strix-contract.md), and [docs/progress.md](docs/progress.md).
+> End-to-end usage is in the in-app **Guide** and [docs/user-guide.md](docs/user-guide.md);
+> installation stays in the deployment documents.
 
 ## What it does
 
@@ -226,6 +229,8 @@ Verified in this environment (see [docs/progress.md](docs/progress.md) for exact
 - Frontend: TypeScript build and **14 Playwright tests** at 1440 px and 390 px, including
   keyboard tab navigation, both retest paths, frozen export download, comparison, and an
   axe-core scan with no serious/critical violations.
+- User guide: **12 guide tests** covering the in-app page, search, route/label drift checks,
+  TOC focus, axe, and 320/390 px reflow (`cd web && npx playwright test e2e/guide.spec.ts`).
 - PDF export: 6 pages for the demo release-scan snapshot; CSV and JSON parse and agree.
 - Fresh database: migrate + seed creates 4 users, 1 project, 3 runs, 4 findings, and
   4 frozen exports without a model provider.
@@ -241,7 +246,7 @@ Verified in this environment (see [docs/progress.md](docs/progress.md) for exact
 | `lab/` | Synthetic Atlas Billing staging API with three deployments |
 | `web/src/` | React app, accessible UI primitives, report/finding/compare screens |
 | `web/e2e/` | Playwright browser and accessibility tests |
-| `docs/` | Contract, deployment, decisions, progress, screenshots |
+| `docs/` | User-guide pointer, contract, deployment, decisions, progress, screenshots |
 | `compose.yaml` | Single-host deployment (db, api, worker, web, demo lab profile) |
 | `scripts/verify-isolation.sh` | Worker-side allowed/denied/redirect probe for the live boundary |
 | `.env` (gitignored) | Deployment secret, database password, bind interface, and mode |

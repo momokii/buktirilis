@@ -78,9 +78,11 @@ docker compose --profile demo up -d worker
 ## Limits
 
 Live execution was observed on 2026-11-18 against `http://100.124.184.116:3100`: Strix
-`1.7.1` completed a quick unauthenticated run with 0 findings, 4 tested checks, 7 unresolved
-gaps, and full artifact/report/export ingestion. That proves the bundle works, not that the
-target is clean or fully covered.
+`1.7.1` completed a quick unauthenticated run with 0 findings and full artifact/report/export
+ingestion. The app's 4 tested / 7 not-run rows are plan-row bookkeeping, not a 4/12 profile
+result; the run had no authenticated identities. The socket-bearing worker is running again after the operator accepted the local-only risk
+and rejected a separate VM. That run proves the adapter, not that the target is clean or that
+the access-control profile was exercised. Do not expose this host publicly.
 
 Sandbox egress isolation is still not enforced by this profile; the socket and same-host
 target make host services reachable unless the host firewall restricts the sandbox network.

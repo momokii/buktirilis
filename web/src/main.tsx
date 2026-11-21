@@ -15,6 +15,7 @@ import { FindingPage } from "./pages/Finding";
 import { ComparePage } from "./pages/Compare";
 import { ProjectSettingsPage, SettingsPage } from "./pages/Settings";
 import { AdminPage } from "./pages/Admin";
+import { GuideIndexPage, GuidePage } from "./pages/Guide";
 import { Navigate as RouterNavigate } from "react-router-dom";
 
 function RequireAuth() {
@@ -60,6 +61,8 @@ function AppRoutes() {
           <Route path="settings" element={<ProjectSettingsPage />} />
         </Route>
         <Route path="/runs" element={<RunsIndexPage />} />
+        <Route path="/guide" element={<GuideIndexPage />} />
+        <Route path="/guide/:slug" element={<GuidePage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="*" element={<Navigate to="/projects" replace />} />

@@ -1,7 +1,7 @@
 ## Project Phase
-First internal release and a single-VM live Strix pilot are observed. The demo path is
-complete; the live engine runs through the bundle but the chosen target has no
-authentication/tenant boundary and coverage is incomplete.
+Single-VM monodeploy is running with a live Strix worker on the same host as the app.
+The operator accepted the local-only socket risk and explicitly rejected a separate VM.
+This is ready for authorized local use, not for public/untrusted production.
 
 ## Completed
 - [x] Product foundation: FastAPI API + worker + PostgreSQL/Alembic + React/TS workspace
@@ -12,35 +12,40 @@ authentication/tenant boundary and coverage is incomplete.
       pinned Strix 1.7.1, Docker CLI, resource limits, and no-new-privileges
 - [x] Live pilot: target `http://100.124.184.116:3100`, run
       `69cbc6dc-a42b-4822-aac6-914b64f9073f`, Strix 1.7.1 completed in 36m 6s
-      (111 requests, 7.9M tokens), 0 findings, 4/12 checks tested, 7 not run, 1 needs review
-- [x] Live artifacts/report/JSON+PDF exports generated; OpenCode Go `x-opencode-session`,
-      Docker CLI, and sandbox-image setup fixed
+      (111 requests, 7.9M tokens), 0 findings. The 4 tested / 7 not-run rows are
+      plan-row bookkeeping, not a profile result; the run had no authenticated identities.
+- [x] Live artifacts/report/JSON+PDF exports generated; OpenCode Go session, Docker CLI,
+      sandbox image, and clean-SARIF handling fixed
 - [x] 103 backend tests; web typecheck/build and 14 Playwright tests previously pass
+- [x] Research note and corrected live-pilot interpretation
 - [x] Fresh-database migrate + seed and documentation
+- [x] User guide: 16 canonical Markdown pages under `web/src/content/guide/guide/`, rendered at
+      `/guide` and readable on GitHub; `docs/user-guide.md` is a pointer. 12 guide tests pass.
 
 ## In Progress / Next
-- [ ] Run against `http://100.124.184.116:8501` (BoxBox Replay) or an authenticated target;
-      3100 is anonymous public read-only, so the access-control profile has no natural object.
-- [ ] Complete or explicitly accept the seven unresolved Strix coverage gaps; do not call
-      them clean.
-- [ ] Re-ingest/supersede the historical live run; it is `ingest_state=partial` because it
-      predates clean-SARIF handling.
-- [ ] Enforce host egress isolation or move the worker to a dedicated VM.
+- [ ] Run the profile against the synthetic lab with two identities, fixtures, and an owner
+      positive control. The lab has 6 accounts / 3 tenants; `:8501` has no account surface.
+- [ ] Close the one real gap by manual replay: compare `GET /api/v1/cves/{id}` with
+      `GET /api/v1/cves/batch?ids=`; the other six gaps are bookkeeping, not six tests.
+- [ ] Re-ingest the historical run; its real artifacts now load as `status=complete`.
+- [ ] Record the npm dev-only deferral; no patched `picomatch` exists.
+- [ ] Keep `web/src/content/guide` and `anchors.ts` current when routes, labels, statuses, or
+      retest paths change; run `cd web && npx playwright test e2e/guide.spec.ts`.
 
-## Blocked
-- Same-VM Docker socket is root-equivalent and host firewall/egress isolation is not
-  enforced on this host. Keep this as a local-dev compromise, not a production pilot.
-- `make security` currently fails: npm audit reports 4 high dev-only ReDoS advisories in
-  `picomatch`/`fdir`/`tinyglobby`/`vite`; no patched version in the current line. Runtime
-  bundle is static nginx output, but the Security Gate is not green.
+## Accepted local risks / Blocked
+- Same-VM Docker socket is root-equivalent; the sandbox has `NET_ADMIN`/`NET_RAW`,
+  `host.docker.internal`, and no host firewall. `:8501` is published on `0.0.0.0`.
+  Accepted only for local authorized testing; do not expose this host publicly.
+- `make security` fails on 4 high dev-only ReDoS advisories in
+  `picomatch`/`fdir`/`tinyglobby`/`vite`; no patched version in the current line.
+  Runtime is static nginx; the gate stays red.
 - GitHub Actions remains unverified until a remote push.
-- The OpenCode Go key used in the pilot was exposed in chat; rotate it and update `.env.live`.
+- `.env.live` is mode 600 and gitignored; the key was not committed. It remains local and
+  was not rotated at the operator's request. Chat exposure is accepted as local-only.
 
 ## Open Questions
-- Which target/profile the pilot group wants next: 8501, an authenticated app, or a
-  controlled lab.
-- Whether the internal reverse proxy or an enforcing gateway owns TLS/path policy.
-- Whether to upgrade Vite across a major version for the dev-only audit advisory.
+- Which synthetic-lab scenario/profile to run next.
+- Whether an authenticated real target will follow the lab.
 
 ## Security Notes
 - Every route enforces project access server-side; cross-project object access returns 404.
@@ -48,10 +53,9 @@ authentication/tenant boundary and coverage is incomplete.
 - Mutations require the per-session CSRF header; login failures are rate-limited.
 - Test credentials are Fernet-encrypted and never returned; evidence is redacted at creation
   and export; missing artifacts are marked unavailable, not presented as proof.
-- Live worker has the Docker socket; web/API do not. It is a documented risk on this host.
-- `.env.live` is mode 600 and gitignored; the key is not committed. Rotate it after the pilot.
+- Live worker is running with the Docker socket; web/API do not hold it.
 - Demo and live records remain separated by `mode`; demo fixtures are never used live.
 
 ## Last Updated
-2026-11-18: live single-VM Strix pilot observed on 3100; 0 findings, 7 coverage gaps;
-adapter/clean-SARIF fixes and docs updated. 103 backend tests pass; npm audit gate fails.
+2026-11-18: single-VM worker restored at the operator's request; local-only risk accepted.
+No separate VM. Live pilot is adapter evidence; the synthetic lab is the next profile target.

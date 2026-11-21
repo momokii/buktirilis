@@ -228,9 +228,12 @@ The single-VM profile ran a real Strix assessment, not a fixture:
 - Run `69cbc6dc-a42b-4822-aac6-914b64f9073f`: quick baseline, live mode, unauthenticated,
   reduced-scope acknowledgement.
 - Strix `1.7.1` completed in 36m 6s, 111 model requests, 7.9M tokens. The app recorded
-  0 findings, 4 of 12 planned checks tested, 7 not run, 1 needs review; coverage is
-  incomplete. Strix's own report says the target is anonymous-by-design and the requested
-  cross-account/tenant classes have no natural target.
+  0 findings and 4 tested / 7 not-run plan rows; coverage is incomplete. This is not a
+  "4/12 access-control result": the 12 rows are Strix coverage entries plus gap rows, and
+  the profile's two required identities were not present. Strix's own report says the target is anonymous-by-design and the requested
+  cross-account/tenant classes have no natural target. The app's 4 tested / 7 not-run rows
+  are plan-row bookkeeping, not a 4/12 access-control profile result; the run had no
+  authenticated identities.
 - Real artifacts produced: `run.json`, `coverage.json`, `findings.sarif`,
   `penetration_test_report.md`, `strix.log`; `vulnerabilities.json` is only written when a
   finding exists. The report lists unresolved `/showcase`, batch-vs-detail, method-override,
@@ -241,20 +244,56 @@ The single-VM profile ran a real Strix assessment, not a fixture:
   cached. Those were fixed; the successful rerun used the pinned sandbox image
   `ghcr.io/usestrix/strix-sandbox:1.4.1`.
 - `ingest_state` is `partial` for this historical run because it predates the clean-SARIF
-  handling that now treats a coverage-only SARIF document as a clean run; future clean runs
-  should ingest as complete.
+  handling. Re-loading the real artifact set with the current loader returns
+  `missing=[]`, `status=complete`; re-ingest is now viable but not yet done.
 
 ## Open backlog after live pilot
 
-- [ ] Test `http://100.124.184.116:8501` (BoxBox Replay) or an authenticated target; the
-      3100 target has no authentication/tenant boundary to exercise.
-- [ ] Complete the seven unresolved Strix coverage items, preferably as a follow-up run or
-      guided retest; do not treat them as clean.
-- [ ] Re-ingest or supersede the historical live run so the report does not inherit the old
-      `partial` ingest limitation.
-- [ ] Enforce sandbox egress on the host (or move the worker to a separate VM). Same-VM
-      Docker socket access remains a documented local-dev risk.
+- [ ] Operator accepted the local-only same-VM socket risk and rejected a separate VM.
+      Do not expose this host publicly; use only authorized local targets.
+- [ ] Close the one real coverage gap by manual replay of the batch/detail comparison. The
+      other six gaps are bookkeeping/`unrecorded_risk_class`, not six untested surfaces.
+- [ ] Run the profile against the synthetic lab with two identities, fixtures, and an owner
+      positive control. `:8501` has no account/login surface and is not an access-control
+      target.
+- [ ] Re-ingest the historical live run with the current loader; the real artifacts now
+      return `status=complete`, so the old `partial` result is not structural.
 - [ ] Rotate the operator's OpenCode Go key after the pilot; it was used from the exposed
       chat value and must not be treated as a long-term secret.
 - [ ] Resolve or formally triage the npm `picomatch` ReDoS advisory (dev-only, no patched
       version in the current Vite line).
+
+## Research correction (2026-11-18)
+
+Research `docs/research/2026-11-18-monodeploy-next-steps.md` verified five backlog claims
+against the artifacts and primary sources:
+
+- The seven gaps are **one** unexecuted test plus six `unrecorded_risk_class` bookkeeping
+  gaps (one agent recorded no coverage); six app `not_run` rows have an empty surface.
+- Gap 1 was blocked by the sandbox proxy, which returned a 9,088-byte Caido error page for
+  every request; the hypothesis still needs a manual two-request replay.
+- The sandbox runs on Docker's default bridge with `NET_ADMIN`/`NET_RAW`,
+  `host.docker.internal`, and no host firewall. `:8501` is published on `0.0.0.0`; the
+  host runs other stacks. The socket worker was stopped as a result.
+- A clean Strix 1.7.1 run has no `vulnerabilities.json`; the current loader treats a
+  coverage-only SARIF as clean and returns `status=complete` on the real artifacts.
+- npm GHSA-fc5q-39xc-vjpf has no patched `picomatch`; Vite 8 still uses `^4.0.7`.
+  This is a documented dev-only deferral, not a green security gate.
+
+The next profile-faithful target is the **synthetic lab** (6 accounts, 3 tenants, owned
+invoices, export and two-actor approval), not `:8501`, which has no account/login surface.
+
+## User guide delivered (2026-11-20)
+
+- Canonical Markdown lives in `web/src/content/guide/guide/` (16 pages); GitHub reads the same
+  files, and `docs/user-guide.md` is a pointer rather than a copy.
+- The SPA renders it at `/guide` and `/guide/:slug` with a dependency-free parser, a grouped
+  index, search, an on-page TOC, previous/next links, author-controlled heading anchors, and
+  page titles. No new dependency and no CSP change.
+- `web/e2e/guide.spec.ts` checks manifest/file one-to-one, parser problems, H1/heading rules,
+  anchors and links, app-route coverage, UI-label drift, table captions, size budget, search,
+  TOC focus, axe, and 320/390 px reflow.
+- Verification: typecheck/build pass; 12 guide Playwright tests pass against the deployed
+  `http://100.124.184.116:8088`.
+- Installation remains separate in `docs/deploying-elsewhere.md`, `docs/deployment.md`, and
+  `docs/monodeploy.md`.

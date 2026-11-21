@@ -180,7 +180,7 @@ Backend tests increased from 81 to **100**; browser tests from 11 to **14**.
 ## Current deployment (demo pilot)
 
 - URL: `http://100.124.184.116:8088` (Tailscale interface only; not LAN/public)
-- Deployed code: `99ec204` (live-pilot adapter fixes); images rebuilt for the live worker
+- Deployed code: `a8f6da0` (single-source user guide); web and API images rebuilt
 - Mode: `APP_ENV=staging`, demo records, web bootstrap disabled, API docs disabled,
   live execution disabled. `COOKIE_SECURE=false` because the tailnet origin is plain HTTP;
   path is WireGuard-encrypted. Prefer `tailscale serve` + TLS to enable Secure cookies.

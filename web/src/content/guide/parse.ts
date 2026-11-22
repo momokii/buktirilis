@@ -25,7 +25,14 @@ export type GuideBlock =
       headers: string[];
       rows: string[][];
     }
-  | { kind: "alert"; tone: "note" | "warning" | "caution"; title: string; text: string };
+  | { kind: "alert"; tone: "note" | "warning" | "caution"; title: string; text: string }
+  | {
+      kind: "figure";
+      src: string;
+      alt: string;
+      number: number;
+      caption: string;
+    };
 
 export type GuideHeading = { level: 2 | 3; text: string; id: string };
 
@@ -43,7 +50,7 @@ const ALERT_TONES = {
   CAUTION: "caution",
 } as const;
 
-const BLOCK_START = /^(#{1,3}\s|```|[-*]\s|\d+\.\s|>\s*\[!|Table:\s|\|)/;
+const BLOCK_START = /^(#{1,3}\s|```|!\[|[-*]\s|\d+\.\s|>\s*\[!|Table:\s|\|)/;
 
 export function slugifyHeading(value: string): string {
   const plain = value
@@ -185,6 +192,58 @@ export function parseGuide(source: string, pageSlug = "guide"): ParsedGuide {
         headings.push({ level, text, id });
       }
       blocks.push({ kind: "heading", level, text, id });
+      index += 1;
+      continue;
+    }
+
+    const image = /^!\[([^\]\n]+)\]\((images\/[a-z0-9][a-z0-9/_-]*\.png)\)$/.exec(line);
+    if (image) {
+      const alt = image[1].trim();
+      const src = image[2];
+      let caption = "";
+      let number = 0;
+      let cursor = index + 1;
+      let blankLines = 0;
+      while (cursor < lines.length && !lines[cursor].trim()) {
+        blankLines += 1;
+        cursor += 1;
+      }
+      const captionLine = /^\*\*Figure ([1-9][0-9]*)\.\*\*\s+(.+)$/.exec(lines[cursor] ?? "");
+      if (captionLine) {
+        number = Number(captionLine[1]);
+        const body = [captionLine[2].trim()];
+        cursor += 1;
+        while (cursor < lines.length && lines[cursor].trim() && !startsBlock(lines[cursor])) {
+          body.push(lines[cursor].trim());
+          cursor += 1;
+        }
+        caption = body.join(" ");
+        if (blankLines === 0) {
+          addProblem(lineNumber, "Put a blank line between the image and its caption.");
+        }
+        if (caption.length < 20 || caption.length > 240) {
+          addProblem(lineNumber, "Figure caption must be 20–240 characters.");
+        }
+        if (!/[.!?]$/.test(caption)) {
+          addProblem(lineNumber, "Figure caption must end with punctuation.");
+        }
+        index = cursor;
+      } else {
+        addProblem(lineNumber, "An image must be followed by a **Figure N.** caption.");
+        index += 1;
+      }
+      if (!alt) {
+        addProblem(lineNumber, "Figure image needs alt text.");
+      }
+      if (alt.length > 155) {
+        addProblem(lineNumber, "Figure alt text must be 155 characters or fewer.");
+      }
+      blocks.push({ kind: "figure", src, alt, number, caption });
+      continue;
+    }
+
+    if (line.startsWith("![") || line.startsWith("<figure") || line.startsWith("<img") || line.startsWith("<picture")) {
+      addProblem(lineNumber, "Only a relative guide image with a Figure caption is supported.");
       index += 1;
       continue;
     }

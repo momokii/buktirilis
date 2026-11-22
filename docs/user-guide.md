@@ -31,5 +31,6 @@ Installation, deployment, TLS, backup, and worker provisioning are separate:
 | [Troubleshooting](../web/src/content/guide/guide/14-troubleshooting.md) | Blockers and next actions |
 | [Limits](../web/src/content/guide/guide/15-limits.md) | Coverage, zero findings, non-certification |
 
-The Markdown is checked by `web/e2e/guide.spec.ts` for structure, links, route coverage, and
-label drift.
+The Markdown is checked by `web/e2e/guide.spec.ts` for structure, links, route coverage, figure
+accessibility, and label drift. Five high-value screens use annotated figures; the capture
+runbook is in `web/scripts/capture-guide-screenshots.mjs`.

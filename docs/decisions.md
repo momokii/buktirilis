@@ -173,3 +173,10 @@ uses and reports unsupported content instead of guessing.
 coverage, heading structure, anchors, links, route/label drift, table captions, and size.
 A route, label, status, or retest-path change must update the guide and its anchors. The guide
 is adjacent to installation instructions by link, not duplicated.
+
+**Annotated figures.** Guide figures use a plain Markdown image followed by a bold
+`**Figure N.**` caption: GitHub renders the image and caption text, while the SPA upgrades the
+pair to `<figure><figcaption>`. Images live beside the Markdown under `guide/images/` and are
+resolved with Vite `?url`; numbered boxes are baked into the PNG and explained in real text.
+This keeps one source for both renderers and avoids raw HTML. Capture is reproducible from
+`web/scripts/capture-guide-screenshots.mjs` against demo data only.

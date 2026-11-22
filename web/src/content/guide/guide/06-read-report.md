@@ -8,6 +8,10 @@ The overview states the run's scope, status, counts, and limitations. Read **Ris
 remaining** before the finding count. A report with no open findings can still have incomplete
 coverage; the notice says which condition applies.
 
+![Report overview showing incomplete coverage, the risk summary, and the coverage count](images/read-report/01-risk-and-coverage.png)
+
+**Figure 1.** 1 is **Coverage incomplete**; 2 is **Risk and work remaining**; 3 is the open-finding summary. A zero finding count is only a clean result when coverage is complete.
+
 ## Findings
 
 The **Findings** tab lists findings recorded from this run's snapshot. A finding is a claim with

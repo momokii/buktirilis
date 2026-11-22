@@ -76,3 +76,7 @@ record verified paths when created rather than inventing examples of project cod
 - User-facing workflow changes (routes, labels, statuses, retest paths) update
   `web/src/content/guide` and `web/src/content/guide/anchors.ts`, then run
   `cd web && npx playwright test e2e/guide.spec.ts`.
+
+- UI figures live under `web/src/content/guide/guide/images/` and use a Markdown image plus a
+  bold `**Figure N.**` caption. Recapture with `web/scripts/capture-guide-screenshots.mjs`
+  after a UI label or route shown in a figure changes.

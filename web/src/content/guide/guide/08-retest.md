@@ -17,6 +17,10 @@ The finding page selects one of three paths:
 The path is independent of the evidence decision. A pending review does not mean the finding is
 false.
 
+![Finding Retest panel with target build, approved replay recipe, and Run automatic retest](images/retest/01-retest-panel.png)
+
+**Figure 1.** 1 selects the target build; 2 explains the approved replay and owner control; 3 starts the automatic retest. A pending evidence review uses the guided path instead.
+
 ## Automatic replay
 
 1. Choose the **Target build**.

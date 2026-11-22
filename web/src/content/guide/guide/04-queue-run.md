@@ -47,6 +47,10 @@ When scenarios need identities you did not select, the preview shows them as blo
 acknowledgement before choosing **Queue run**. A reduced-scope run is valid, but its report
 must not be presented as full profile coverage.
 
+![Run preflight with a reduced-scope warning, acknowledgement, and disabled Queue run button](images/queue-run/01-preflight-reduced-scope.png)
+
+**Figure 1.** 1 deliberately leaves identities out; 2 lists the blocked scenarios under **Reduced scope**; 3 is the acknowledgement; 4 stays disabled until the acknowledgement is checked. A ready badge can still mean a reduced scope.
+
 ## Queue the run
 
 Choose **Queue run**. The response may return a new run or an existing identical active run

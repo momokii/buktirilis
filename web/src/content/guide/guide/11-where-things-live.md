@@ -27,6 +27,10 @@ Table: Project sections
 | Compare | Compare two completed runs. |
 | Settings | Target policy, OpenAPI revision, test identities, audit, membership, execution settings. |
 
+![BuktiRilis top navigation and Atlas Billing project tabs with numbered callouts](images/where-things-live/01-navigation-and-tabs.png)
+
+**Figure 1.** 1 is the top-bar **Runs** list; 2 is installation **Settings**; 3 is this project's **Runs**; 4 is this project's **Settings**. The labels repeat, but the scope does not.
+
 There is no top-level **Builds** page. Builds live inside a project. There is also no delete
 action for a project, build, or run; the history is retained.
 

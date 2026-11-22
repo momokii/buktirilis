@@ -114,7 +114,7 @@ Status: DONE.
 - Canonical Markdown in `web/src/content/guide/guide/` (16 pages), rendered in-app at
   `/guide` by a dependency-free parser and readable on GitHub; `docs/user-guide.md` is a
   pointer. Installation remains in the deployment documents.
-- Verification: web typecheck/build pass; 14 guide Playwright tests pass, including public
+- Verification: web typecheck/build pass; 16 guide Playwright tests pass, including public
   access from login, content drift checks, search, TOC focus, axe, favicon, and 320/390 px
   reflow.
 - Follow-up: update the guide and `anchors.ts` whenever a route, UI label, status, or retest
@@ -127,4 +127,13 @@ Status: DONE.
   mobile page menu and TOC; task-oriented index/search; active TOC.
 - Fixed the parser so table header separators never render as data.
 - Added desktop/mobile screenshots and reflow tests for both index and page.
-- Verification: web typecheck/build pass; 14 guide Playwright tests pass.
+- Verification: web typecheck/build pass; 16 guide Playwright tests pass.
+
+## TASK-008 — annotated guide figures (2026-11-22)
+Status: DONE.
+
+- Added five numbered, boxed screenshots for navigation, preflight, report overview, retest,
+  and comparison; captions carry the legend.
+- Added strict figure parsing/rendering, 1x/2x PNGs, `FIGURE_META`, alt/caption/size/path
+  checks, and the local demo capture script.
+- Verification: web typecheck/build pass; 16 guide Playwright tests pass.

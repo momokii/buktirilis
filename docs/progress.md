@@ -293,7 +293,7 @@ invoices, export and two-actor approval), not `:8501`, which has no account/logi
 - `web/e2e/guide.spec.ts` checks manifest/file one-to-one, parser problems, H1/heading rules,
   anchors and links, app-route coverage, UI-label drift, table captions, size budget, search,
   TOC focus, axe, and 320/390 px reflow.
-- Verification: typecheck/build pass; 14 guide Playwright tests pass against the deployed
+- Verification: typecheck/build pass; 16 guide Playwright tests pass against the deployed
   `http://100.124.184.116:8088`. The guide is public at `/guide`; the login page links to it.
 - Brand assets: proof-tag mark and wordmark, SVG favicon, Apple touch icon, 192/512 icons, and
   web manifest in `web/public/`; the app header, login card, and public guide share the mark.
@@ -313,5 +313,30 @@ invoices, export and two-actor approval), not `:8501`, which has no account/logi
   web manifest.
 - Desktop and mobile screenshots: `docs/screenshots/guide-index-desktop.png`,
   `guide-page-desktop.png`, `guide-page-mobile.png`.
-- Verification: web typecheck/build pass; 14 guide Playwright tests pass, including public
+- Verification: web typecheck/build pass; 16 guide Playwright tests pass, including public
   access, favicon, search, axe, TOC focus, table parsing, and 320/390 px index/page reflow.
+
+## Annotated guide figures (2026-11-22)
+
+Five high-value workflow screens now carry numbered, boxed screenshots with real-text captions:
+
+- `images/where-things-live/01-navigation-and-tabs.png`
+- `images/queue-run/01-preflight-reduced-scope.png`
+- `images/read-report/01-risk-and-coverage.png`
+- `images/retest/01-retest-panel.png`
+- `images/compare/01-run-selection-and-buckets.png`
+
+The Markdown stays plain: an image followed by a bold `**Figure N.**` caption, readable on
+GitHub; the SPA upgrades the pair to a semantic `<figure>` and loads 1x/2x PNGs through Vite.
+Assets are stored beside the guide, not in `web/public`, so one relative path works in both
+renderers. The images use demo data only and carry numbered boxes; the real-text captions
+explain each number.
+
+Capture is repeatable with `web/scripts/capture-guide-screenshots.mjs` against the local demo
+fixture. The script refuses to run without the demo banner. It uses 2x Playwright captures,
+ImageMagick for crop/compression, and writes `figureMeta.ts` from the PNG headers. No new
+dependency, no CSP change, and no external image host.
+
+Verification: web typecheck/build pass; 16 guide Playwright tests pass, including public access,
+figure alt/dimensions/2x sources, route/label drift, search, axe, TOC focus, and 320/390 px
+reflow.

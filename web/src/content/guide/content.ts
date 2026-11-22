@@ -15,6 +15,19 @@ const sources = import.meta.glob<string>("./guide/*.md", {
   import: "default",
 });
 
+const imageUrls = import.meta.glob<string>("./guide/images/**/*.png", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
+
+export function guideFigureUrls(src: string): { url: string; url2x?: string } {
+  const url = imageUrls[`./guide/${src}`];
+  if (!url) throw new Error(`Guide figure missing: ${src}`);
+  const url2x = imageUrls[`./guide/${src.replace(/\.png$/, "@2x.png")}`];
+  return { url, url2x };
+}
+
 export const GUIDE: GuidePage[] = GUIDE_PAGES.map((meta) => {
   const source = sources[`./guide/${meta.file}`];
   if (source === undefined) {

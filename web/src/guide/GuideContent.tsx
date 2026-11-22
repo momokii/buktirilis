@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { TableWrap } from "../ui";
+import { guideFigureUrls } from "../content/guide/content";
+import { FIGURE_META } from "../content/guide/figureMeta";
 import { parseInline, type GuideBlock } from "../content/guide/parse";
 
 function Inline({ text }: { text: string }) {
@@ -45,9 +47,30 @@ function Inline({ text }: { text: string }) {
 }
 
 export function GuideBlocks({ blocks }: { blocks: GuideBlock[] }) {
+  const firstFigure = blocks.findIndex((block) => block.kind === "figure");
   return (
     <>
       {blocks.map((block, index) => {
+        if (block.kind === "figure") {
+          const { url, url2x } = guideFigureUrls(block.src);
+          const meta = FIGURE_META[block.src];
+          return (
+            <figure className="guide-figure" key={index}>
+              <img
+                src={url}
+                srcSet={url2x ? `${url} 1x, ${url2x} 2x` : undefined}
+                width={meta?.width}
+                height={meta?.height}
+                alt={block.alt}
+                loading={index === firstFigure ? "eager" : "lazy"}
+                decoding="async"
+              />
+              <figcaption>
+                <strong>Figure {block.number}.</strong> <Inline text={block.caption} />
+              </figcaption>
+            </figure>
+          );
+        }
         if (block.kind === "heading") {
           const Heading = `h${block.level}` as "h1" | "h2" | "h3";
           return (

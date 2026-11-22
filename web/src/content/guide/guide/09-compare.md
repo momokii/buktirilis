@@ -11,6 +11,10 @@ Use this page when you have two completed runs of the same project and want to s
 Both runs must be completed. The baseline defaults to the previous same-mode run, and selecting
 the same run twice is rejected. A demo run and a live run are not comparable.
 
+![Release comparison showing baseline and current selectors, scope changes, and bucket counts](images/compare/01-run-selection-and-buckets.png)
+
+**Figure 1.** 1 is the baseline run; 2 is the current run; 3 is **Scope changes**; 4 is the bucket grid. Read the scope warning before treating a bucket as a fix or regression.
+
 ## Buckets
 
 Table: Comparison bucket meanings

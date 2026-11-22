@@ -2420,6 +2420,32 @@ ol.steps li::marker {
   font-weight: 650;
 }
 
+.guide-figure {
+  margin: 0.25rem 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.guide-figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.guide-figure figcaption {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  max-width: 68ch;
+}
+
+.guide-figure figcaption strong {
+  color: var(--text);
+}
+
 .guide-article .notice {
   align-items: flex-start;
   border-left-width: 3px;

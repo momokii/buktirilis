@@ -146,3 +146,12 @@ Status: DONE.
 - Environment labels are documented as deployment configuration, not production parity.
 - Worker status spacing fixed.
 - Verification: web typecheck/build pass; 16 guide tests and 2 focused project/role tests pass.
+
+## TASK-010 — admin flow, audit pagination, and form hardening (2026-11-22)
+Status: DONE.
+
+- Audit API/UI pagination, multiple memberships, password reset, access editing, confirmations,
+  dynamic origin/path fields, isolated form errors, and target-origin normalization.
+- Updated Admin/Projects screenshots.
+- Verification: backend 107 passed; web typecheck/build pass; full browser suite 18 passed
+  and guide suite 16 passed.

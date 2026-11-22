@@ -24,8 +24,8 @@ the deployment changes.
 
 1. Open **Admin** and choose **New project**, or use **New project** on the **Projects** page.
 2. Enter a name, optional slug, and a short description.
-3. Record the **Approved base URL**, allowed origins, optional path restrictions, environment
-   label, scope owner, and authorization reference.
+3. Record the **Approved base URL**, dynamic allowed-origin rows, dynamic path-prefix rows,
+   environment label, scope owner, and authorization reference.
 4. Save. The first target policy is revision 1.
 
 The target policy is the authorization boundary. A build cannot use an origin or path that is

@@ -18,7 +18,7 @@ This is ready for authorized local use, not for public/untrusted production.
       plan-row bookkeeping, not a profile result; the run had no authenticated identities.
 - [x] Live artifacts/report/JSON+PDF exports generated; OpenCode Go session, Docker CLI,
       sandbox image, and clean-SARIF handling fixed
-- [x] 103 backend tests; web typecheck/build and 14 Playwright tests previously pass
+- [x] 107 backend tests; web typecheck/build and the 18-test browser suite pass
 - [x] Research note and corrected live-pilot interpretation
 - [x] Fresh-database migrate + seed and documentation
 - [x] User guide: 16 canonical Markdown pages under `web/src/content/guide/guide/`, rendered at
@@ -29,6 +29,10 @@ This is ready for authorized local use, not for public/untrusted production.
 - [x] Admin project creation is discoverable from Projects; operator gets a clear request hint.
       Environment labels are explained as deployment labels, not production parity.
       Worker status spacing is corrected.
+- [x] Admin accounts: paginated audit events (20/page), multiple project memberships,
+      password reset, access editing, admin/active changes with confirmation, and isolated
+      form errors. Project origins/paths use add/remove rows; target origins normalize. Updated
+      Admin and Projects screenshots.
 
 ## In Progress / Next
 - [ ] Run the profile against the synthetic lab with two identities, fixtures, and an owner
@@ -65,6 +69,7 @@ This is ready for authorized local use, not for public/untrusted production.
 - Demo and live records remain separated by `mode`; demo fixtures are never used live.
 
 ## Last Updated
+2026-11-22: admin flow and audit pagination completed; account/project forms hardened; screenshots refreshed.
 2026-11-22: project-creation affordance, environment-label copy, and worker-spacing fixes.
 2026-11-21: guide UI revamp shipped (docs sidebar, mobile navigation, active TOC, table fix);
 public guide and brand assets are deployed. 2026-11-18: single-VM worker restored at the operator's request; local-only risk accepted.

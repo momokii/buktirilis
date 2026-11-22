@@ -180,7 +180,7 @@ Backend tests increased from 81 to **100**; browser tests from 11 to **14**.
 ## Current deployment (demo pilot)
 
 - URL: `http://100.124.184.116:8088` (Tailscale interface only; not LAN/public)
-- Deployed code: `1378b64` (project creation, environment labels, worker spacing); web image rebuilt
+- Deployed code: `e65870d` (admin flows, audit pagination, form hardening); web and API images rebuilt
 - Mode: `APP_ENV=staging`, demo records, web bootstrap disabled, API docs disabled,
   live execution disabled. `COOKIE_SECURE=false` because the tailnet origin is plain HTTP;
   path is WireGuard-encrypted. Prefer `tailscale serve` + TLS to enable Secure cookies.
@@ -372,3 +372,22 @@ current deployment is not production-safe:
 Project creation remains installation-administrator-only. Operators manage builds, runs,
 retests, recipes, and verdicts within projects; they do not create projects or installation
 accounts. This is server-enforced, not just hidden UI.
+
+## Admin flow and audit pagination (2026-11-22)
+
+- The Admin page now supports paginated audit events (20 per page) with Previous/Next controls
+  and a total count.
+- Account creation supports multiple project/role rows; installation administrator is an
+  explicit opt-in and bypasses project memberships.
+- Admins can reset another account's password, replace project access, disable/enable accounts,
+  and grant/remove admin with confirmation dialogs. The server still enforces self-protection
+  and admin authorization.
+- Project creation is available directly on the Projects page for admins; the project dialog
+  uses dynamic origin/path-prefix rows instead of comma-separated text.
+- Fixed target origin normalization so a trailing slash or an empty origin list uses the
+  normalized base origin.
+- Fixed shared form-error leakage between account and project dialogs.
+- Updated Admin/Projects screenshots: `admin-desktop.png`, `admin-mobile.png`,
+  `admin-project-dialog.png`, `admin-account-dialog.png`, `projects-desktop.png`.
+- Verification: backend 107 passed; web typecheck/build pass; full browser suite 18 passed
+  and guide suite 16 passed against the deployed app.

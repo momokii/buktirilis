@@ -187,3 +187,11 @@ a secure production configuration would still be blocked by the shared Docker so
 npm audit gate, and the absence of a production TLS/worker boundary. Kept the deployment in
 staging. Confirmed project creation is admin-only server-side; operators manage project work,
 not project creation.
+
+## 2026-11-22 — admin flow and audit pagination
+Rebuilt the Admin account flow: paginated audit tables, multiple project memberships during
+creation and editing, password reset, access editing, confirmations for admin/active changes,
+explicit administrator opt-in, isolated form errors, and dynamic project-origin/path rows.
+Fixed target-origin normalization so trailing slashes and empty origin lists work. Added
+Admin/Projects screenshots. Verification: backend 107 passed; web typecheck/build pass; 18 browser tests and 16 guide
+tests pass.

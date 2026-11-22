@@ -224,13 +224,13 @@ cd web && npx playwright install chromium
 
 Verified in this environment (see [docs/progress.md](docs/progress.md) for exact output):
 
-- Backend: **103 tests** covering policy/OpenAPI overrides, redaction, replay assertions,
+- Backend: **107 tests** covering policy/OpenAPI overrides, redaction, replay assertions,
   retest/review semantics, verdict derivation, comparison buckets, pipeline, cancellation,
   revoked access, worker lease reconciliation, exports, API/CSRF/isolation, and the Strix
   subprocess contract.
-- Frontend: TypeScript build and **14 Playwright tests** at 1440 px and 390 px, including
-  keyboard tab navigation, both retest paths, frozen export download, comparison, and an
-  axe-core scan with no serious/critical violations.
+- Frontend: TypeScript build and **18 browser tests** at 1440 px and 390 px, including keyboard
+  navigation, retest paths, frozen export download, comparison, project creation, account
+  controls, audit pagination, role boundaries, and axe checks.
 - User guide: **16 guide tests** covering public access, search, route/label drift checks,
   annotated figures, TOC focus, axe, favicon, and 320/390 px reflow (`cd web && npx playwright test e2e/guide.spec.ts`).
 - PDF export: 6 pages for the demo release-scan snapshot; CSV and JSON parse and agree.
@@ -244,7 +244,7 @@ Verified in this environment (see [docs/progress.md](docs/progress.md) for exact
 | `backend/app/services/` | Policy/OpenAPI, replay runner, recipes, retests, findings/comparison, ingest, releases, runs/queue, pipeline, exports, Strix adapter, demo seed |
 | `backend/app/routers/` | Auth, admin, projects/builds, runs/reports, findings/retests, exports |
 | `backend/migrations/` | Alembic schema (ordered, cycle-safe initial migration + follow-up) |
-| `backend/tests/` | 103 tests, including a real local HTTP lab fixture |
+| `backend/tests/` | 107 tests, including a real local HTTP lab fixture |
 | `lab/` | Synthetic Atlas Billing staging API with three deployments |
 | `web/src/` | React app, accessible UI primitives, report/finding/compare screens |
 | `web/e2e/` | Playwright browser and accessibility tests |

@@ -23,6 +23,15 @@ Table: Project capabilities by role
 The server enforces these checks. If a button is missing, do not ask another user to click it
 for you; ask them to perform the action with their own account.
 
+## Account administration
+
+Installation administrators can create accounts, reset another account's password, edit project
+memberships, disable or enable an account, and grant or remove installation administration.
+Those actions require a confirmation; the server records the change in the audit trail.
+
+Operators cannot create projects or installation accounts. They manage builds, runs, retests,
+recipes, and verdicts inside projects where they are a member.
+
 ## Project membership
 
 An administrator adds an existing account to a project in **Project → Settings → Membership**.

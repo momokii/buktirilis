@@ -238,9 +238,77 @@ test("no serious accessibility violations on report and finding pages", async ({
 
 test("admin can start project creation from the Projects page", async ({ page }) => {
   await signIn(page, "admin");
-  await page.getByRole("link", { name: "New project" }).click();
+  await page.getByRole("button", { name: "New project" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Register an approved project" })).toBeVisible();
+  expect(page.url()).toContain("/projects");
+  expect(page.url()).not.toContain("/admin");
+  await page.getByRole("button", { name: "Add origin" }).click();
+  await expect(page.getByRole("textbox", { name: "Approved origins 1" })).toBeVisible();
+  await page.getByRole("button", { name: "Remove Approved origins 1" }).click();
+  await expect(page.getByRole("textbox", { name: "Approved origins 1" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Add path restriction" }).click();
+  await expect(page.getByRole("textbox", { name: "Path restrictions 2" })).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+});
+
+test("admin account and audit controls expose safe actions", async ({ page }) => {
+  await signIn(page, "admin");
+  await page.getByRole("link", { name: "Admin", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Administration" })).toBeVisible();
+  const auditNav = page.getByRole("navigation", { name: "Audit pages" });
+  await expect(auditNav).toBeVisible();
+  const nextAudit = auditNav.getByRole("button", { name: "Next" });
+  if (await nextAudit.isEnabled()) {
+    await nextAudit.click();
+    await expect(auditNav).toContainText("page 2");
+    await auditNav.getByRole("button", { name: "Previous" }).click();
+    await expect(auditNav).toContainText("page 1");
+  }
+
+  await page.getByRole("button", { name: "New account" }).click();
+  await expect(page.getByRole("heading", { name: "Provision an account" })).toBeVisible();
+  await page.getByLabel(/Installation administrator/).check();
+  await expect(page.getByText(/This account bypasses project membership/)).toBeVisible();
+  await expect(page.getByRole("group", { name: "Project access" })).toHaveCount(0);
+  await page.getByLabel(/Installation administrator/).uncheck();
+  await expect(page.getByRole("group", { name: "Project access" })).toBeVisible();
+  await page.getByRole("button", { name: "Add project access" }).click();
+  await expect(page.getByLabel("Project for membership 2")).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+
+  const viewerRow = page.getByRole("row").filter({ hasText: "Demo Viewer" });
+  await viewerRow.getByRole("button", { name: "Reset password" }).click();
+  await expect(page.getByRole("heading", { name: /Reset password/ })).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+
+  await viewerRow.getByRole("button", { name: "Edit access" }).click();
+  await expect(page.getByRole("heading", { name: /Project access/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save access" })).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+
+  await viewerRow.getByRole("button", { name: /Make admin/ }).click();
+  const confirmDialog = page.getByRole("dialog");
+  await expect(confirmDialog).toBeVisible();
+  await confirmDialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(confirmDialog).toHaveCount(0);
+});
+
+test("account errors do not leak into the project dialog", async ({ page }) => {
+  await signIn(page, "admin");
+  await page.getByRole("link", { name: "Admin", exact: true }).click();
+  await page.getByRole("button", { name: "New account" }).click();
+  const admin = credentials().admin;
+  await page.getByLabel("Email").fill(admin.email);
+  await page.getByLabel("Display name").fill("Duplicate");
+  await page.getByLabel("Initial password").fill("correct horse battery staple");
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByText("An account with this email already exists")).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+  await page.getByRole("button", { name: "New project" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByText("An account with this email already exists")).toHaveCount(0);
+  await page.getByRole("button", { name: "Cancel" }).click();
 });
 
 test("operator sees how to request a project instead of a disabled create action", async ({

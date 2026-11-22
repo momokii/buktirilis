@@ -40,7 +40,7 @@ export const UI_LABELS = [
   { text: "Rotate credential", file: "src/pages/Settings.tsx" },
   { text: "Release comparison", file: "src/pages/Compare.tsx" },
   { text: "Provision an account", file: "src/pages/Admin.tsx" },
-  { text: "Register an approved project", file: "src/pages/Admin.tsx" },
+  { text: "Register an approved project", file: "src/components/ProjectDialog.tsx" },
 ] as const;
 
 export const EXEMPT_ROUTES = new Set<string>([]);

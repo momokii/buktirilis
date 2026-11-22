@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useApi, useAuth } from "../auth";
 import type { Project } from "../api";
-import { EmptyState, ErrorState, LinkButton, Loading, ModeBadge, PageHeader, RelativeTime } from "../ui";
+import { Button, EmptyState, ErrorState, Loading, ModeBadge, PageHeader, RelativeTime } from "../ui";
+import { ProjectDialog } from "../components/ProjectDialog";
 
 export function ProjectsPage() {
   const { session } = useAuth();
   const { data, error, loading, refresh } = useApi<{ items: Project[] }>("/api/projects");
   const isAdmin = session?.user.is_admin ?? false;
+  const [createOpen, setCreateOpen] = useState(false);
 
   if (loading && !data) return <Loading label="Loading projects" />;
   if (error) return <ErrorState message="Projects are unavailable." onRetry={refresh} />;
@@ -20,9 +23,9 @@ export function ProjectsPage() {
         meta={<span>{projects.length} project(s) visible to your account</span>}
         actions={
           isAdmin ? (
-            <LinkButton to="/admin?new=project" variant="primary">
+            <Button variant="primary" onClick={() => setCreateOpen(true)}>
               New project
-            </LinkButton>
+            </Button>
           ) : undefined
         }
       />
@@ -37,9 +40,9 @@ export function ProjectsPage() {
           title="No projects yet"
           action={
             isAdmin ? (
-              <Link className="btn btn-primary btn-md btn-link" to="/admin?new=project">
+              <Button variant="primary" onClick={() => setCreateOpen(true)}>
                 Create a project
-              </Link>
+              </Button>
             ) : undefined
           }
         >
@@ -86,6 +89,14 @@ export function ProjectsPage() {
           ))}
         </div>
       )}
+      <ProjectDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => {
+          refresh();
+          setCreateOpen(false);
+        }}
+      />
     </>
   );
 }

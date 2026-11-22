@@ -3,22 +3,10 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useApi } from "../auth";
 import { api, errorMessage } from "../api";
 import type { AdminUser, Project } from "../api";
-import {
-  Button,
-  Dialog,
-  ErrorState,
-  Field,
-  Loading,
-  Mono,
-  Notice,
-  PageHeader,
-  RelativeTime,
-  Section,
-  Select,
-  TableWrap,
-  TextInput,
-  useToast,
-} from "../ui";
+import { Button, Dialog, ErrorState, Field, Loading, Mono, Notice, PageHeader, RelativeTime, Section, TableWrap, TextInput, useToast } from "../ui";
+import { ConfirmDialog } from "../components/ConfirmDialog";
+import { MembershipEditor, type MembershipDraft } from "../components/MembershipEditor";
+import { ProjectDialog } from "../components/ProjectDialog";
 
 interface AuditRow {
   id: string;
@@ -31,15 +19,52 @@ interface AuditRow {
   metadata: Record<string, unknown>;
 }
 
+interface AuditPage {
+  items: AuditRow[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+interface ConfirmState {
+  user: AdminUser;
+  patch: Record<string, unknown>;
+  title: string;
+  description: string;
+  confirmLabel: string;
+  tone: "primary" | "danger";
+}
+
+const AUDIT_PAGE_SIZE = 20;
+
 export function AdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const users = useApi<{ items: AdminUser[] }>("/api/admin/users");
   const projects = useApi<{ items: Project[] }>("/api/projects");
-  const audit = useApi<{ items: AuditRow[] }>("/api/admin/audit?limit=40");
+  const [auditPage, setAuditPage] = useState(0);
+  const audit = useApi<AuditPage>(
+    `/api/admin/audit?limit=${AUDIT_PAGE_SIZE}&offset=${auditPage * AUDIT_PAGE_SIZE}`,
+  );
   const { notify } = useToast();
+
   const [userOpen, setUserOpen] = useState(false);
   const [projectOpen, setProjectOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [userError, setUserError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null);
+  const [resetUser, setResetUser] = useState<AdminUser | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetConfirm, setResetConfirm] = useState("");
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [accessUser, setAccessUser] = useState<AdminUser | null>(null);
+  const [accessMemberships, setAccessMemberships] = useState<MembershipDraft[]>([]);
+  const [accessError, setAccessError] = useState<string | null>(null);
+
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [memberships, setMemberships] = useState<MembershipDraft[]>([]);
 
   useEffect(() => {
     if (searchParams.get("new") !== "project") return;
@@ -48,28 +73,38 @@ export function AdminPage() {
     next.delete("new");
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
-  const [error, setError] = useState<string | null>(null);
 
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [membershipProject, setMembershipProject] = useState("");
-  const [membershipRole, setMembershipRole] = useState("developer");
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil((audit.data?.total ?? 0) / AUDIT_PAGE_SIZE));
+    if (auditPage >= totalPages) {
+      setAuditPage(Math.max(0, totalPages - 1));
+    }
+  }, [audit.data?.total, auditPage]);
 
-  const [projectName, setProjectName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [description, setDescription] = useState("");
-  const [baseUrl, setBaseUrl] = useState("");
-  const [origins, setOrigins] = useState("");
-  const [prefixes, setPrefixes] = useState("/");
-  const [environment, setEnvironment] = useState("staging");
-  const [scopeOwner, setScopeOwner] = useState("");
-  const [authorization, setAuthorization] = useState("");
+  const projectOptions = (projects.data?.items ?? []).map((project) => ({
+    id: project.id,
+    name: project.name,
+  }));
+
+  const openUserDialog = () => {
+    setUserError(null);
+    setMemberships([{ project_id: "", role: "developer" }]);
+    setUserOpen(true);
+  };
+
+  const closeUserDialog = () => {
+    setUserOpen(false);
+    setUserError(null);
+    setEmail("");
+    setName("");
+    setPassword("");
+    setIsAdmin(false);
+    setMemberships([]);
+  };
 
   const createUser = async () => {
     setBusy(true);
-    setError(null);
+    setUserError(null);
     try {
       await api("/api/admin/users", {
         method: "POST",
@@ -78,89 +113,127 @@ export function AdminPage() {
           display_name: name,
           password,
           is_admin: isAdmin,
-          memberships: membershipProject
-            ? [{ project_id: membershipProject, role: membershipRole }]
-            : [],
+          memberships: isAdmin
+            ? []
+            : memberships
+                .filter((membership) => membership.project_id)
+                .map((membership) => ({
+                  project_id: membership.project_id,
+                  role: membership.role,
+                })),
         }),
       });
-      notify("success", "Account provisioned with its scoped membership.");
-      setUserOpen(false);
-      setEmail("");
-      setName("");
-      setPassword("");
-      setIsAdmin(false);
-      setMembershipProject("");
+      notify("success", "Account provisioned with its scoped access.");
+      closeUserDialog();
       users.refresh();
     } catch (caught) {
-      setError(errorMessage(caught));
+      setUserError(errorMessage(caught));
     } finally {
       setBusy(false);
     }
   };
 
-  const createProject = async () => {
+  const requestConfirm = (next: ConfirmState) => setConfirm(next);
+
+  const applyConfirmedPatch = async () => {
+    if (!confirm) return;
     setBusy(true);
-    setError(null);
     try {
-      await api("/api/projects", {
-        method: "POST",
-        body: JSON.stringify({
-          name: projectName,
-          slug: slug || null,
-          description,
-          target: {
-            base_url: baseUrl,
-            allowed_origins: origins
-              .split(",")
-              .map((item) => item.trim())
-              .filter(Boolean),
-            path_prefixes: prefixes
-              .split(",")
-              .map((item) => item.trim())
-              .filter(Boolean),
-            environment_label: environment,
-            scope_owner: scopeOwner,
-            authorization_reference: authorization,
-            run_limits: { max_depth: "standard", max_replay_checks: 20, max_runs_per_day: 8 },
-          },
-        }),
-      });
-      notify("success", "Project registered with its first approved target revision.");
-      setProjectOpen(false);
-      setProjectName("");
-      setSlug("");
-      setBaseUrl("");
-      setOrigins("");
-      setDescription("");
-      projects.refresh();
-    } catch (caught) {
-      setError(errorMessage(caught));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const patchUser = async (user: AdminUser, patch: Record<string, unknown>) => {
-    try {
-      await api(`/api/admin/users/${user.id}`, {
+      await api(`/api/admin/users/${confirm.user.id}`, {
         method: "PATCH",
-        body: JSON.stringify(patch),
+        body: JSON.stringify(confirm.patch),
       });
       notify("success", "Account updated.");
+      setConfirm(null);
       users.refresh();
     } catch (caught) {
       notify("error", errorMessage(caught));
+    } finally {
+      setBusy(false);
     }
   };
 
+  const openReset = (user: AdminUser) => {
+    setResetUser(user);
+    setResetPassword("");
+    setResetConfirm("");
+    setResetError(null);
+  };
+
+  const saveReset = async () => {
+    if (!resetUser) return;
+    if (resetPassword.length < 12) {
+      setResetError("Use at least 12 characters.");
+      return;
+    }
+    if (resetPassword !== resetConfirm) {
+      setResetError("The password confirmation does not match.");
+      return;
+    }
+    setBusy(true);
+    setResetError(null);
+    try {
+      await api(`/api/admin/users/${resetUser.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ password: resetPassword }),
+      });
+      notify("success", "Password reset. Share the new password through an approved channel.");
+      setResetUser(null);
+    } catch (caught) {
+      setResetError(errorMessage(caught));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openAccess = (user: AdminUser) => {
+    setAccessUser(user);
+    setAccessMemberships(
+      user.memberships.map((membership) => ({
+        project_id: membership.project_id,
+        role: membership.role,
+      })),
+    );
+    setAccessError(null);
+  };
+
+  const saveAccess = async () => {
+    if (!accessUser) return;
+    setBusy(true);
+    setAccessError(null);
+    try {
+      await api(`/api/admin/users/${accessUser.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          memberships: accessMemberships
+            .filter((membership) => membership.project_id)
+            .map((membership) => ({
+              project_id: membership.project_id,
+              role: membership.role,
+            })),
+        }),
+      });
+      notify("success", "Project access updated.");
+      setAccessUser(null);
+      users.refresh();
+    } catch (caught) {
+      setAccessError(errorMessage(caught));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const auditTotal = audit.data?.total ?? 0;
+  const auditPages = Math.max(1, Math.ceil(auditTotal / AUDIT_PAGE_SIZE));
+
   return (
-    <>
+    <div className="admin-page">
       <PageHeader
         title="Administration"
         description="Provision accounts with scoped project roles, register approved project scopes, and review security-relevant events."
         actions={
           <>
-            <Button onClick={() => setUserOpen(true)}>New account</Button>
+            <Button onClick={openUserDialog}>New account</Button>
             <Button variant="primary" onClick={() => setProjectOpen(true)}>
               New project
             </Button>
@@ -223,15 +296,47 @@ export function AdminPage() {
                       <RelativeTime value={user.created_at} />
                     </td>
                     <td className="actions">
+                      <Button size="sm" onClick={() => openReset(user)}>
+                        Reset password
+                      </Button>
+                      <Button size="sm" onClick={() => openAccess(user)}>
+                        Edit access
+                      </Button>
                       <Button
                         size="sm"
-                        onClick={() => void patchUser(user, { is_active: !user.is_active })}
+                        aria-label={`${user.is_active ? "Disable" : "Enable"} ${user.email}`}
+                        onClick={() =>
+                          requestConfirm({
+                            user,
+                            patch: { is_active: !user.is_active },
+                            title: user.is_active ? "Disable this account?" : "Enable this account?",
+                            description: user.is_active
+                              ? `${user.email} will no longer be able to sign in. Existing evidence is not changed.`
+                              : `${user.email} will be able to sign in again with its existing credentials.`,
+                            confirmLabel: user.is_active ? "Disable account" : "Enable account",
+                            tone: user.is_active ? "danger" : "primary",
+                          })
+                        }
                       >
                         {user.is_active ? "Disable" : "Enable"}
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => void patchUser(user, { is_admin: !user.is_admin })}
+                        aria-label={`${user.is_admin ? "Remove admin from" : "Make admin"} ${user.email}`}
+                        onClick={() =>
+                          requestConfirm({
+                            user,
+                            patch: { is_admin: !user.is_admin },
+                            title: user.is_admin
+                              ? "Remove installation administrator?"
+                              : "Make installation administrator?",
+                            description: user.is_admin
+                              ? `${user.email} will lose installation-wide administration and keep only explicit project memberships.`
+                              : `${user.email} will be able to manage all projects, accounts, and credentials.`,
+                            confirmLabel: user.is_admin ? "Remove admin" : "Make admin",
+                            tone: user.is_admin ? "danger" : "primary",
+                          })
+                        }
                       >
                         {user.is_admin ? "Remove admin" : "Make admin"}
                       </Button>
@@ -272,34 +377,57 @@ export function AdminPage() {
         {audit.loading && !audit.data ? <Loading label="Loading audit" /> : null}
         {audit.error ? <ErrorState message="Audit could not be loaded." onRetry={audit.refresh} /> : null}
         {audit.data && audit.data.items.length > 0 ? (
-          <TableWrap label="Installation audit">
-            <table className="audit-table">
-              <thead>
-                <tr>
-                  <th scope="col">When</th>
-                  <th scope="col">Actor</th>
-                  <th scope="col">Action</th>
-                  <th scope="col">Target</th>
-                </tr>
-              </thead>
-              <tbody>
-                {audit.data.items.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <RelativeTime value={row.at} />
-                    </td>
-                    <td>{row.actor || "system"}</td>
-                    <td>
-                      <Mono>{row.action}</Mono>
-                    </td>
-                    <td>
-                      {row.target_type} · {row.target_id.slice(0, 16)}
-                    </td>
+          <>
+            <TableWrap label="Installation audit">
+              <table className="audit-table">
+                <thead>
+                  <tr>
+                    <th scope="col">When</th>
+                    <th scope="col">Actor</th>
+                    <th scope="col">Action</th>
+                    <th scope="col">Target</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableWrap>
+                </thead>
+                <tbody>
+                  {audit.data.items.map((row) => (
+                    <tr key={row.id}>
+                      <td>
+                        <RelativeTime value={row.at} />
+                      </td>
+                      <td>{row.actor || "system"}</td>
+                      <td>
+                        <Mono>{row.action}</Mono>
+                      </td>
+                      <td>
+                        {row.target_type} · {row.target_id.slice(0, 16)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableWrap>
+            <nav className="pagination" aria-label="Audit pages">
+              <span className="small muted">
+                {auditTotal} event(s) · page {auditPage + 1} of {auditPages}
+              </span>
+              <div className="pagination-actions">
+                <Button
+                  size="sm"
+                  disabled={auditPage === 0 || audit.loading}
+                  onClick={() => setAuditPage((page) => Math.max(0, page - 1))}
+                >
+                  Previous
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={auditPage + 1 >= auditPages || audit.loading}
+                  onClick={() => setAuditPage((page) => page + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </nav>
+          </>
         ) : audit.data ? (
           <p className="muted small">No events recorded.</p>
         ) : null}
@@ -307,13 +435,18 @@ export function AdminPage() {
 
       <Dialog
         open={userOpen}
-        onClose={() => setUserOpen(false)}
+        onClose={closeUserDialog}
         title="Provision an account"
-        description="Passwords are hashed with Argon2id. Memberships scope the account to one project; add more in project settings."
+        description="Passwords are hashed with Argon2id. Add one membership row per project the account should access."
         footer={
           <>
-            <Button onClick={() => setUserOpen(false)}>Cancel</Button>
-            <Button variant="primary" busy={busy} onClick={() => void createUser()} disabled={!email || !password}>
+            <Button onClick={closeUserDialog}>Cancel</Button>
+            <Button
+              variant="primary"
+              busy={busy}
+              onClick={() => void createUser()}
+              disabled={!email || !name || password.length < 12}
+            >
               Create account
             </Button>
           </>
@@ -327,7 +460,11 @@ export function AdminPage() {
             <TextInput id="admin-name" value={name} onChange={(event) => setName(event.target.value)} />
           </Field>
         </div>
-        <Field label="Initial password" htmlFor="admin-password" hint="At least 12 characters; share through an approved channel.">
+        <Field
+          label="Initial password"
+          htmlFor="admin-password"
+          hint="At least 12 characters; share through an approved channel."
+        >
           <TextInput
             id="admin-password"
             type="password"
@@ -337,33 +474,6 @@ export function AdminPage() {
             onChange={(event) => setPassword(event.target.value)}
           />
         </Field>
-        <div className="grid-2">
-          <Field label="Project" htmlFor="admin-project">
-            <Select
-              id="admin-project"
-              value={membershipProject}
-              onChange={(event) => setMembershipProject(event.target.value)}
-            >
-              <option value="">No project yet</option>
-              {(projects.data?.items ?? []).map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Project role" htmlFor="admin-role">
-            <Select
-              id="admin-role"
-              value={membershipRole}
-              onChange={(event) => setMembershipRole(event.target.value)}
-            >
-              <option value="viewer">Viewer</option>
-              <option value="developer">Developer</option>
-              <option value="operator">Operator</option>
-            </Select>
-          </Field>
-        </div>
         <div className="checkbox-row">
           <input
             id="admin-is-admin"
@@ -371,74 +481,113 @@ export function AdminPage() {
             checked={isAdmin}
             onChange={(event) => setIsAdmin(event.target.checked)}
           />
-          <label htmlFor="admin-is-admin">Installation administrator</label>
+          <label htmlFor="admin-is-admin">
+            Installation administrator
+            <span className="field-hint">
+              Off by default. Administrators can access every project; project memberships are not
+              required.
+            </span>
+          </label>
         </div>
-        {error ? <Notice tone="error">{error}</Notice> : null}
+        {isAdmin ? (
+          <Notice tone="info" title="Administrator account">
+            This account bypasses project membership. It can manage every project, account, and
+            credential.
+          </Notice>
+        ) : (
+          <MembershipEditor
+            projects={projectOptions}
+            values={memberships}
+            onChange={setMemberships}
+            label="Project access"
+          />
+        )}
+        {userError ? <Notice tone="error">{userError}</Notice> : null}
       </Dialog>
 
       <Dialog
-        open={projectOpen}
-        onClose={() => setProjectOpen(false)}
-        wide
-        title="Register an approved project"
-        description="The first target policy revision is created with the project. Runs can only target destinations inside it."
+        open={Boolean(resetUser)}
+        onClose={() => setResetUser(null)}
+        title={`Reset password${resetUser ? ` for ${resetUser.display_name}` : ""}`}
+        description="The new password is not shown again. Share it through an approved channel."
         footer={
           <>
-            <Button onClick={() => setProjectOpen(false)}>Cancel</Button>
-            <Button
-              variant="primary"
-              busy={busy}
-              onClick={() => void createProject()}
-              disabled={!projectName || !baseUrl}
-            >
-              Create project
+            <Button onClick={() => setResetUser(null)}>Cancel</Button>
+            <Button variant="primary" busy={busy} onClick={() => void saveReset()}>
+              Reset password
             </Button>
           </>
         }
       >
-        <div className="grid-2">
-          <Field label="Project name" htmlFor="project-name">
-            <TextInput id="project-name" value={projectName} onChange={(event) => setProjectName(event.target.value)} />
-          </Field>
-          <Field label="Slug (optional)" htmlFor="project-slug">
-            <TextInput id="project-slug" value={slug} onChange={(event) => setSlug(event.target.value)} />
-          </Field>
-        </div>
-        <Field label="Description" htmlFor="project-description">
+        <Field label="New password" htmlFor="reset-password" hint="At least 12 characters.">
           <TextInput
-            id="project-description"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
+            id="reset-password"
+            type="password"
+            autoComplete="new-password"
+            value={resetPassword}
+            onChange={(event) => setResetPassword(event.target.value)}
           />
         </Field>
-        <Field label="Approved base URL" htmlFor="project-base">
-          <TextInput id="project-base" value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="https://staging.example.internal" />
+        <Field label="Confirm new password" htmlFor="reset-password-confirm">
+          <TextInput
+            id="reset-password-confirm"
+            type="password"
+            autoComplete="new-password"
+            value={resetConfirm}
+            onChange={(event) => setResetConfirm(event.target.value)}
+          />
         </Field>
-        <div className="grid-2">
-          <Field
-            label="Allowed origins (comma separated)"
-            htmlFor="project-origins"
-            hint="Origin only: scheme://host:port. Empty defaults to the base URL."
-          >
-            <TextInput id="project-origins" value={origins} onChange={(event) => setOrigins(event.target.value)} />
-          </Field>
-          <Field label="Path restrictions (comma separated)" htmlFor="project-prefixes">
-            <TextInput id="project-prefixes" value={prefixes} onChange={(event) => setPrefixes(event.target.value)} />
-          </Field>
-        </div>
-        <div className="grid-2">
-          <Field label="Environment label" htmlFor="project-env">
-            <TextInput id="project-env" value={environment} onChange={(event) => setEnvironment(event.target.value)} />
-          </Field>
-          <Field label="Scope owner" htmlFor="project-owner">
-            <TextInput id="project-owner" value={scopeOwner} onChange={(event) => setScopeOwner(event.target.value)} />
-          </Field>
-        </div>
-        <Field label="Authorization reference" htmlFor="project-auth">
-          <TextInput id="project-auth" value={authorization} onChange={(event) => setAuthorization(event.target.value)} />
-        </Field>
-        {error ? <Notice tone="error">{error}</Notice> : null}
+        {resetError ? <Notice tone="error">{resetError}</Notice> : null}
       </Dialog>
-    </>
+
+      <Dialog
+        open={Boolean(accessUser)}
+        onClose={() => setAccessUser(null)}
+        title={`Project access${accessUser ? ` for ${accessUser.display_name}` : ""}`}
+        description="Saving replaces the account's current project memberships."
+        footer={
+          <>
+            <Button onClick={() => setAccessUser(null)}>Cancel</Button>
+            <Button variant="primary" busy={busy} onClick={() => void saveAccess()}>
+              Save access
+            </Button>
+          </>
+        }
+      >
+        <MembershipEditor
+          projects={projectOptions}
+          values={accessMemberships}
+          onChange={setAccessMemberships}
+          label="Project membership"
+        />
+        {accessUser?.is_admin ? (
+          <Notice tone="info" title="Installation administrator">
+            This account already has access to every project; these explicit memberships are
+            additional.
+          </Notice>
+        ) : null}
+        {accessError ? <Notice tone="error">{accessError}</Notice> : null}
+      </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(confirm)}
+        title={confirm?.title ?? ""}
+        description={confirm?.description ?? ""}
+        confirmLabel={confirm?.confirmLabel ?? "Continue"}
+        tone={confirm?.tone}
+        busy={busy}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => void applyConfirmedPatch()}
+      />
+
+      <ProjectDialog
+        open={projectOpen}
+        onClose={() => setProjectOpen(false)}
+        onCreated={() => {
+          projects.refresh();
+          setProjectOpen(false);
+        }}
+      />
+    </div>
   );
 }

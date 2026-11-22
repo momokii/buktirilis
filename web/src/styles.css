@@ -930,6 +930,11 @@ textarea.input {
   font-weight: 500;
 }
 
+.checkbox-row .field-hint {
+  display: block;
+  margin-top: 0.15rem;
+}
+
 fieldset {
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -1451,6 +1456,11 @@ ol.steps li::marker {
 .auth-footer {
   font-size: 0.75rem;
   color: var(--text-faint);
+}
+
+.auth-footer a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* ------------------------------------------------------------------ misc */
@@ -2673,5 +2683,88 @@ pre.guide-code {
     border: 0;
     padding: 0;
     max-width: none;
+  }
+}
+
+/* -------------------------------------------------------------- admin forms */
+
+.admin-page > .notice {
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  line-height: 1.55;
+}
+
+.list-field,
+.membership-editor {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.75rem 0.8rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+}
+
+.list-field legend,
+.membership-editor legend {
+  padding: 0 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.list-field-rows,
+.membership-rows {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.list-field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.membership-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 9.5rem auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.list-field .field-hint,
+.membership-editor .field-hint {
+  margin: 0;
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.8rem;
+}
+
+.pagination-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+@media (max-width: 760px) {
+  .membership-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .membership-row > :last-child {
+    grid-column: 1 / -1;
+    justify-self: start;
   }
 }

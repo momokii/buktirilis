@@ -236,6 +236,21 @@ test("no serious accessibility violations on report and finding pages", async ({
   ).toEqual([]);
 });
 
+test("admin can start project creation from the Projects page", async ({ page }) => {
+  await signIn(page, "admin");
+  await page.getByRole("link", { name: "New project" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Register an approved project" })).toBeVisible();
+});
+
+test("operator sees how to request a project instead of a disabled create action", async ({
+  page,
+}) => {
+  await signIn(page, "operator");
+  await expect(page.getByRole("link", { name: "New project" })).toHaveCount(0);
+  await expect(page.getByText(/Only an installation administrator can create a project/)).toBeVisible();
+});
+
 test("login page has no serious accessibility violations", async ({ page }) => {
   await page.goto("/login");
   const results = await new AxeBuilder({ page })

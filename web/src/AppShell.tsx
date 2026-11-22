@@ -38,7 +38,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
           <div className="topbar-right">
             {session ? (
               <>
-                <span className="env-chip" title="Active deployment environment">
+                <span className="env-chip" title="Configured deployment environment label; not a production parity guarantee">
                   {session.environment.app_env}
                 </span>
                 <span className="user-chip">

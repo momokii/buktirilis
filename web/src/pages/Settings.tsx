@@ -576,7 +576,7 @@ export function SettingsPage() {
               <>
                 <DefinitionList
                   items={[
-                    { term: "Environment", value: meta.data.app_env },
+                    { term: "Environment", value: `${meta.data.app_env} (deployment label)` },
                     { term: "Demo mode", value: meta.data.demo_enabled ? "enabled" : "disabled" },
                     { term: "Live execution", value: meta.data.live_enabled ? "enabled" : "not provisioned" },
                     { term: "Pinned engine", value: `Strix ${meta.data.strix_version} adapter` },
@@ -597,6 +597,11 @@ export function SettingsPage() {
                 <p className="small muted" style={{ marginTop: "0.5rem" }}>
                   {meta.data.notice} The model provider only receives what the worker sends to the
                   engine; keys never reach the browser.
+                </p>
+                <p className="small muted" style={{ marginTop: "0.35rem" }}>
+                  The environment name is a deployment label selected by APP_ENV. It controls
+                  deployment behavior, not production parity; compare a production deployment only
+                  after separately validating its build, target policy, identities, and coverage.
                 </p>
               </>
             ) : null}
@@ -622,7 +627,7 @@ export function SettingsPage() {
           <Section title="Worker" description="Queued work is claimed with a lease; interrupted work is never silently re-run.">
             {worker.error ? <ErrorState message="Worker status could not be loaded." onRetry={worker.refresh} /> : null}
             {worker.data ? (
-              <>
+              <div className="worker-status">
                 <div className="bucket-grid">
                   <div className="bucket">
                     <span className="bucket-label">Queued</span>
@@ -667,7 +672,7 @@ export function SettingsPage() {
                     Queued jobs are waiting. Start the worker process, then retry the action.
                   </Notice>
                 ) : null}
-              </>
+              </div>
             ) : (
               <Loading label="Loading worker status" />
             )}

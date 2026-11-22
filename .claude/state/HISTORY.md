@@ -172,3 +172,11 @@ release comparison. Markdown remains the single source: image plus bold `**Figur
 on GitHub; the SPA renders a semantic figure with 1x/2x PNGs. Added strict figure validation
 and a repeatable local-demo capture script. Verification: web typecheck/build pass; 16 guide
 Playwright tests pass.
+
+## 2026-11-22 — project creation, environment labels, and worker spacing
+Added an admin-only **New project** action on the Projects page that opens the existing Admin
+dialog, with an explicit request hint for operators. Clarified in the top bar, Settings, guide,
+and deployment docs that `staging` is an `APP_ENV` deployment label, not a production parity
+guarantee. Fixed the Worker section spacing between the active-runs summary and the recent-jobs
+table. Verification: web typecheck/build pass; 16 guide tests and 2 focused project/role tests
+pass.

@@ -1507,6 +1507,11 @@ ol.steps li::marker {
   color: var(--text);
 }
 
+.worker-status {
+  display: grid;
+  gap: 0.9rem;
+}
+
 .bucket-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));

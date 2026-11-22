@@ -22,7 +22,7 @@ the deployment changes.
 
 ## Create the project
 
-1. Open **Admin** and choose **New project**.
+1. Open **Admin** and choose **New project**, or use **New project** on the **Projects** page.
 2. Enter a name, optional slug, and a short description.
 3. Record the **Approved base URL**, allowed origins, optional path restrictions, environment
    label, scope owner, and authorization reference.

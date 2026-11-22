@@ -137,3 +137,12 @@ Status: DONE.
 - Added strict figure parsing/rendering, 1x/2x PNGs, `FIGURE_META`, alt/caption/size/path
   checks, and the local demo capture script.
 - Verification: web typecheck/build pass; 16 guide Playwright tests pass.
+
+## TASK-009 — usability corrections (2026-11-22)
+Status: DONE.
+
+- Admin **New project** on Projects opens the existing Admin registration dialog; operator sees
+  an actionable permission hint.
+- Environment labels are documented as deployment configuration, not production parity.
+- Worker status spacing fixed.
+- Verification: web typecheck/build pass; 16 guide tests and 2 focused project/role tests pass.

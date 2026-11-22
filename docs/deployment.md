@@ -71,6 +71,10 @@ COOKIE_SECURE=false         # plain HTTP inside the WireGuard tailnet
 DEMO_SEED_ENABLED=true      # demo pilot only
 ```
 
+`APP_ENV=staging` is a deployment behavior and label, not a guarantee that staging is a 1:1 copy
+of production. A production claim needs its own deployment, target policy, identities, build,
+and recorded coverage.
+
 ```bash
 docker compose --profile demo up -d --build
 docker compose --profile demo exec -T api python -m app.cli seed-demo \

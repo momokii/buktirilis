@@ -20,6 +20,16 @@ The report lists blocked, not-run, and needs-review rows. Identity-dependent che
 when no suitable identities were selected. A target with no account or tenant model cannot
 exercise cross-account authorization even if the scanner runs successfully.
 
+## Environment labels
+
+The **staging** or **production** label in the top bar is selected by the deployment's
+`APP_ENV`. It changes deployment behavior such as cookie security and available routes. It does
+not prove that the staging target is a 1:1 copy of production.
+
+A staging run and a production run are separate builds with separate scope and evidence. To
+claim production readiness, run the same agreed profile against production with its own target
+policy and identities, and compare the recorded scope and coverage rather than the label.
+
 ## Demo versus live
 
 Demo runs use deterministic synthetic artifacts and real replays against the bundled lab. Live

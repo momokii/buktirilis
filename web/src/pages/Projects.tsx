@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
-import { useApi } from "../auth";
+import { useApi, useAuth } from "../auth";
 import type { Project } from "../api";
-import { EmptyState, ErrorState, Loading, ModeBadge, PageHeader, RelativeTime } from "../ui";
+import { EmptyState, ErrorState, LinkButton, Loading, ModeBadge, PageHeader, RelativeTime } from "../ui";
 
 export function ProjectsPage() {
+  const { session } = useAuth();
   const { data, error, loading, refresh } = useApi<{ items: Project[] }>("/api/projects");
+  const isAdmin = session?.user.is_admin ?? false;
 
   if (loading && !data) return <Loading label="Loading projects" />;
   if (error) return <ErrorState message="Projects are unavailable." onRetry={refresh} />;
@@ -16,14 +18,29 @@ export function ProjectsPage() {
         title="Projects"
         description="Approved staging scopes, their builds, and the evidence recorded against them."
         meta={<span>{projects.length} project(s) visible to your account</span>}
+        actions={
+          isAdmin ? (
+            <LinkButton to="/admin?new=project" variant="primary">
+              New project
+            </LinkButton>
+          ) : undefined
+        }
       />
+      {!isAdmin ? (
+        <p className="muted small" style={{ margin: "-0.35rem 0 0.9rem" }}>
+          Only an installation administrator can create a project. Ask an administrator to add
+          your account to the right project scope.
+        </p>
+      ) : null}
       {projects.length === 0 ? (
         <EmptyState
           title="No projects yet"
           action={
-            <Link className="btn btn-primary btn-md btn-link" to="/admin">
-              Provision users and a project
-            </Link>
+            isAdmin ? (
+              <Link className="btn btn-primary btn-md btn-link" to="/admin?new=project">
+                Create a project
+              </Link>
+            ) : undefined
           }
         >
           An administrator registers the approved staging scope before any run can be requested.

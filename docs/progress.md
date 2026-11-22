@@ -340,3 +340,17 @@ dependency, no CSP change, and no external image host.
 Verification: web typecheck/build pass; 16 guide Playwright tests pass, including public access,
 figure alt/dimensions/2x sources, route/label drift, search, axe, TOC focus, and 320/390 px
 reflow.
+
+## Usability corrections (2026-11-22)
+
+- **Project creation discoverability:** administrators now get a **New project** action on the
+  **Projects** page; it opens the existing registration dialog via `/admin?new=project`.
+  Non-administrators see a clear instruction to ask an installation administrator. The server
+  remains admin-only.
+- **Environment semantics:** `staging` is the configured `APP_ENV` deployment label, not a
+  production parity guarantee. The top-bar tooltip, Settings page, deployment guide, and user
+  guide now say this explicitly.
+- **Settings spacing:** the worker counters, recent-jobs table, and notices now sit in a
+  consistent `worker-status` stack; the active-run summary no longer crowds the table.
+- Verification: web typecheck/build pass; full guide suite 16 passed; the two focused project
+  creation/role tests passed against the deployed app.

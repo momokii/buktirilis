@@ -22,6 +22,10 @@ The deployment decides whether runs are demo or live. A **Demo** banner and badg
 workspace is showing synthetic fixtures. A live deployment has no demo banner. A run always
 records its own `mode`; a demo run and a live run are never compared with each other.
 
+The environment name in the top bar (for example **staging**) is a deployment label configured
+by the operator. It is not a claim that staging matches production. Use a separate production
+build, target policy, identities, and coverage when validating production.
+
 > [!NOTE]
 > The badge reflects the deployment, not a choice in the run wizard. You cannot turn a single
 > run into demo mode from the UI.

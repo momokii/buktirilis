@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useApi } from "../auth";
 import { api, errorMessage } from "../api";
 import type { AdminUser, Project } from "../api";
@@ -32,6 +32,7 @@ interface AuditRow {
 }
 
 export function AdminPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const users = useApi<{ items: AdminUser[] }>("/api/admin/users");
   const projects = useApi<{ items: Project[] }>("/api/projects");
   const audit = useApi<{ items: AuditRow[] }>("/api/admin/audit?limit=40");
@@ -39,6 +40,14 @@ export function AdminPage() {
   const [userOpen, setUserOpen] = useState(false);
   const [projectOpen, setProjectOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("new") !== "project") return;
+    setProjectOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("new");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
   const [error, setError] = useState<string | null>(null);
 
   const [email, setEmail] = useState("");

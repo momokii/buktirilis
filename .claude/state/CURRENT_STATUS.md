@@ -23,8 +23,12 @@ This is ready for authorized local use, not for public/untrusted production.
 - [x] Fresh-database migrate + seed and documentation
 - [x] User guide: 16 canonical Markdown pages under `web/src/content/guide/guide/`, rendered at
       the public `/guide` route and readable on GitHub; `docs/user-guide.md` is a pointer.
-      16 guide tests pass. Brand mark/favicon/install icons are in `web/public/`; the guide has a
-      persistent docs sidebar, mobile navigation/TOC, active section tracking, and public access.
+      16 guide tests pass. Five annotated figures. Brand mark/favicon/install icons are in
+      `web/public/`; the guide has a persistent docs sidebar, mobile navigation/TOC, active
+      section tracking, and public access.
+- [x] Admin project creation is discoverable from Projects; operator gets a clear request hint.
+      Environment labels are explained as deployment labels, not production parity.
+      Worker status spacing is corrected.
 
 ## In Progress / Next
 - [ ] Run the profile against the synthetic lab with two identities, fixtures, and an owner
@@ -61,6 +65,7 @@ This is ready for authorized local use, not for public/untrusted production.
 - Demo and live records remain separated by `mode`; demo fixtures are never used live.
 
 ## Last Updated
+2026-11-22: project-creation affordance, environment-label copy, and worker-spacing fixes.
 2026-11-21: guide UI revamp shipped (docs sidebar, mobile navigation, active TOC, table fix);
 public guide and brand assets are deployed. 2026-11-18: single-VM worker restored at the operator's request; local-only risk accepted.
 No separate VM. Live pilot is adapter evidence; the synthetic lab is the next profile target.

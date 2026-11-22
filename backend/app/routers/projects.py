@@ -38,6 +38,7 @@ from app.serializers import (
 from app.services.policy import (
     PolicyError,
     TargetPolicy,
+    _normalise_origin,
     load_openapi_document,
     parse_origin,
     sanitise_openapi,
@@ -103,23 +104,26 @@ class AttestationInput(BaseModel):
 
 
 def _validate_target(payload: TargetInput) -> dict:
-    origins = [
-        origin.strip()
-        for origin in (payload.allowed_origins or [payload.base_url])
-        if origin.strip()
-    ]
-    if not origins:
-        raise HTTPException(status_code=422, detail="At least one approved origin is required")
-    for origin in origins:
-        try:
-            parse_origin(origin)
-        except PolicyError as exc:
-            raise HTTPException(status_code=422, detail=f"Approved origin rejected: {exc}") from exc
     try:
         base = parse_origin(payload.base_url)
     except PolicyError as exc:
         raise HTTPException(status_code=422, detail=f"Base URL rejected: {exc}") from exc
-    base_origin = f"{base[0]}://{base[1]}:{base[2]}"
+    base_origin = _normalise_origin(*base)
+
+    origins: list[str] = []
+    for raw_origin in payload.allowed_origins or [payload.base_url]:
+        raw_origin = str(raw_origin).strip()
+        if not raw_origin:
+            continue
+        try:
+            analog = parse_origin(raw_origin)
+        except PolicyError as exc:
+            raise HTTPException(status_code=422, detail=f"Approved origin rejected: {exc}") from exc
+        origin = _normalise_origin(*analog)
+        if origin not in origins:
+            origins.append(origin)
+    if not origins:
+        raise HTTPException(status_code=422, detail="At least one approved origin is required")
     if base_origin not in origins:
         raise HTTPException(status_code=422, detail="The base URL must match one approved origin")
     prefixes = []

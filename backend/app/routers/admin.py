@@ -6,7 +6,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -38,6 +38,7 @@ class UserUpdate(BaseModel):
     password: str | None = Field(default=None, min_length=12, max_length=512)
     is_admin: bool | None = None
     is_active: bool | None = None
+    memberships: list[MembershipInput] | None = None
 
 
 @ROUTER.get("/users")
@@ -134,6 +135,29 @@ def update_user(
         user.is_admin = payload.is_admin
     if payload.is_active is not None:
         user.is_active = payload.is_active
+    if payload.memberships is not None:
+        next_memberships: dict[uuid.UUID, Role] = {}
+        for membership in payload.memberships:
+            if membership.project_id in next_memberships:
+                raise HTTPException(status_code=422, detail="A project can only be assigned once")
+            if db.get(Project, membership.project_id) is None:
+                raise HTTPException(status_code=422, detail="Project not found for a membership")
+            next_memberships[membership.project_id] = membership.role
+        existing = list(
+            db.execute(select(ProjectMember).where(ProjectMember.user_id == user.id)).scalars()
+        )
+        for member in existing:
+            db.delete(member)
+        db.flush()
+        for project_id, role in next_memberships.items():
+            db.add(
+                ProjectMember(
+                    project_id=project_id,
+                    user_id=user.id,
+                    role=role.value,
+                    added_by=principal.user.id,
+                )
+            )
     db.add(
         AuditEvent(
             actor_id=principal.user.id,
@@ -148,6 +172,7 @@ def update_user(
                     if key != "password"
                 ],
                 "password_rotated": payload.password is not None,
+                "memberships_replaced": payload.memberships is not None,
             },
         )
     )
@@ -157,13 +182,20 @@ def update_user(
 
 @ROUTER.get("/audit")
 def audit_tail(
-    limit: int = 50,
+    limit: int = 20,
+    offset: int = 0,
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_admin),
 ) -> dict:
+    page_size = min(max(limit, 1), 200)
+    page_offset = max(offset, 0)
+    total = db.scalar(select(func.count()).select_from(AuditEvent)) or 0
     rows = list(
         db.execute(
-            select(AuditEvent).order_by(AuditEvent.at.desc()).limit(min(max(limit, 1), 200))
+            select(AuditEvent)
+            .order_by(AuditEvent.at.desc(), AuditEvent.id.desc())
+            .offset(page_offset)
+            .limit(page_size)
         ).scalars()
     )
     return {
@@ -179,5 +211,8 @@ def audit_tail(
                 "metadata": row.metadata_json,
             }
             for row in rows
-        ]
+        ],
+        "total": total,
+        "limit": page_size,
+        "offset": page_offset,
     }

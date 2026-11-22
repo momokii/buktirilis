@@ -448,3 +448,77 @@ def test_finding_detail_shows_evidence_and_separates_states(api, client, db):
     assert detail["evidence"][0]["attribution"]
     assert "lab.tenant" not in __import__("json").dumps(detail)
     assert detail["capabilities"]["can_operate"] is True
+
+
+def test_project_creation_normalises_default_origin(db, admin_client, lab_server):
+    response = admin_client.post(
+        "/api/projects",
+        json={
+            "name": "Origin normalization",
+            "slug": "origin-normalization",
+            "description": "Default origin and trailing slash",
+            "target": {
+                "base_url": f"{lab_server}/",
+                "allowed_origins": [],
+                "path_prefixes": ["/"],
+                "environment_label": "staging",
+            },
+        },
+    )
+    assert response.status_code == 201, response.text
+    assert response.json()["target"]["allowed_origins"] == [lab_server]
+
+
+def test_operator_cannot_create_projects(api, client):
+    operator = api["users"]["operator"]
+    login(client, operator["email"])
+    response = client.post(
+        "/api/projects",
+        json={
+            "name": "Operator project",
+            "slug": "operator-project",
+            "target": {"base_url": api["lab_base"], "allowed_origins": [api["lab_base"]]},
+        },
+    )
+    assert response.status_code == 403
+
+
+def test_admin_can_reset_password_and_replace_memberships(db, admin_client, api):
+    operator = api["users"]["operator"]
+    new_password = "new correct horse battery staple"
+    response = admin_client.patch(
+        f"/api/admin/users/{operator['id']}", json={"password": new_password}
+    )
+    assert response.status_code == 200, response.text
+
+    fresh = TestClient(__import__("app.main", fromlist=["app"]).app)
+    assert login(fresh, operator["email"], new_password)
+    fresh.close()
+
+    project_id = api["project"]["id"]
+    response = admin_client.patch(
+        f"/api/admin/users/{operator['id']}",
+        json={"memberships": [{"project_id": project_id, "role": "viewer"}]},
+    )
+    assert response.status_code == 200, response.text
+    users = admin_client.get("/api/admin/users").json()["items"]
+    updated = next(user for user in users if user["id"] == operator["id"])
+    assert updated["memberships"] == [
+        {"project_id": project_id, "project_name": "API Test Atlas", "role": "viewer"}
+    ]
+
+
+def test_audit_events_are_paginated(db, admin_client):
+    first = admin_client.get("/api/admin/audit?limit=2&offset=0")
+    assert first.status_code == 200, first.text
+    body = first.json()
+    assert body["limit"] == 2
+    assert body["offset"] == 0
+    assert body["total"] >= len(body["items"])
+    assert len(body["items"]) <= 2
+    second = admin_client.get("/api/admin/audit?limit=2&offset=2")
+    assert second.status_code == 200, second.text
+    assert second.json()["offset"] == 2
+    first_ids = {row["id"] for row in body["items"]}
+    second_ids = {row["id"] for row in second.json()["items"]}
+    assert first_ids.isdisjoint(second_ids)

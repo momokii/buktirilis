@@ -180,3 +180,10 @@ and deployment docs that `staging` is an `APP_ENV` deployment label, not a produ
 guarantee. Fixed the Worker section spacing between the active-runs summary and the recent-jobs
 table. Verification: web typecheck/build pass; 16 guide tests and 2 focused project/role tests
 pass.
+
+## 2026-11-22 — production guard and operator boundary
+Verified that production fails closed with the current insecure-cookie configuration, and that
+a secure production configuration would still be blocked by the shared Docker socket, the red
+npm audit gate, and the absence of a production TLS/worker boundary. Kept the deployment in
+staging. Confirmed project creation is admin-only server-side; operators manage project work,
+not project creation.

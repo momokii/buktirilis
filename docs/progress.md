@@ -354,3 +354,21 @@ reflow.
   consistent `worker-status` stack; the active-run summary no longer crowds the table.
 - Verification: web typecheck/build pass; full guide suite 16 passed; the two focused project
   creation/role tests passed against the deployed app.
+
+## Production transition check (2026-11-22)
+
+The deployed app remains `APP_ENV=staging`. A production label was not applied because the
+current deployment is not production-safe:
+
+- With the current plain-HTTP/`COOKIE_SECURE=false` settings, `APP_ENV=production` fails closed
+  with `COOKIE_SECURE cannot be false in production`; this is intentional.
+- A production configuration with secure cookies and demo disabled can be instantiated, but
+  the host still has the worker's root-equivalent Docker socket, the npm audit gate is red,
+  and no production TLS endpoint or isolated worker exists.
+- Production therefore requires a separate deployment with TLS, secure cookies, a separate
+  database/secret, no demo/lab, a dedicated or strictly egress-controlled worker, and a green
+  security/CI release check. The staging label is not a 1:1 production guarantee.
+
+Project creation remains installation-administrator-only. Operators manage builds, runs,
+retests, recipes, and verdicts within projects; they do not create projects or installation
+accounts. This is server-enforced, not just hidden UI.

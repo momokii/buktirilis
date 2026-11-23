@@ -522,3 +522,35 @@ def test_audit_events_are_paginated(db, admin_client):
     first_ids = {row["id"] for row in body["items"]}
     second_ids = {row["id"] for row in second.json()["items"]}
     assert first_ids.isdisjoint(second_ids)
+
+
+def test_admin_cannot_reset_own_password_through_admin_api(db, admin_client):
+    admin = admin_client.get("/api/auth/session").json()["user"]
+    response = admin_client.patch(
+        f"/api/admin/users/{admin['id']}",
+        json={"password": "a different admin password 123"},
+    )
+    assert response.status_code == 409
+    assert "Settings" in response.json()["detail"]
+
+
+def test_user_can_change_own_password_with_current_password(db, admin_client):
+    bad = admin_client.post(
+        "/api/auth/password",
+        json={
+            "current_password": "wrong password",
+            "new_password": "new correct horse battery staple",
+        },
+    )
+    assert bad.status_code == 401
+    good = admin_client.post(
+        "/api/auth/password",
+        json={
+            "current_password": PASSWORD,
+            "new_password": "new correct horse battery staple",
+        },
+    )
+    assert good.status_code == 200, good.text
+    fresh = TestClient(__import__("app.main", fromlist=["app"]).app)
+    assert login(fresh, "admin@example.test", "new correct horse battery staple")
+    fresh.close()

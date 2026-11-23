@@ -127,6 +127,14 @@ def update_user(
         raise HTTPException(status_code=409, detail="You cannot remove your own administrator role")
     if user.id == principal.user.id and payload.is_active is False:
         raise HTTPException(status_code=409, detail="You cannot deactivate your own account")
+    if user.id == principal.user.id and any(
+        value is not None
+        for value in (payload.password, payload.is_admin, payload.is_active, payload.memberships)
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="Use Settings to change your own password; another administrator must change your role, state, or access",
+        )
     if payload.display_name is not None:
         user.display_name = payload.display_name.strip()
     if payload.password is not None:

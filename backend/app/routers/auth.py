@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.db import get_db
 from app.deps import Principal, get_principal
+from app.domain import AuditAction
 from app.models import AuditEvent, Project, ProjectMember, User, UserSession
 from app.routers.deps import csrf_protected
 from app.security import (
@@ -39,6 +40,11 @@ class BootstrapRequest(BaseModel):
     email: str = Field(min_length=3, max_length=320)
     display_name: str = Field(min_length=1, max_length=120)
     password: str = Field(min_length=12, max_length=512)
+
+
+class PasswordChange(BaseModel):
+    current_password: str = Field(min_length=1, max_length=512)
+    new_password: str = Field(min_length=12, max_length=512)
 
 
 def normalise_email(value: str) -> str:
@@ -226,6 +232,39 @@ def login(
     db.commit()
     set_session_cookie(response, raw_token)
     return session_payload(db, Principal(user=user, session=session, ip_hash=ip_hash_value))
+
+
+@ROUTER.post("/auth/password")
+def change_password(
+    payload: PasswordChange,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(csrf_protected),
+) -> dict:
+    if not verify_password(principal.user.password_hash, payload.current_password):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+    if payload.current_password == payload.new_password:
+        raise HTTPException(status_code=422, detail="Choose a different password")
+    principal.user.password_hash = hash_password(payload.new_password)
+    for session in db.execute(
+        select(UserSession).where(
+            UserSession.user_id == principal.user.id,
+            UserSession.id != principal.session.id,
+            UserSession.revoked_at.is_(None),
+        )
+    ).scalars():
+        revoke_session(db, session)
+    db.add(
+        AuditEvent(
+            actor_id=principal.user.id,
+            actor_label=principal.label,
+            action=AuditAction.PASSWORD_CHANGED.value,
+            target_type="user",
+            target_id=str(principal.user.id),
+            metadata_json={"other_sessions_revoked": True},
+        )
+    )
+    db.commit()
+    return {"ok": True, "message": "Password changed. Other sessions were signed out."}
 
 
 @ROUTER.post("/auth/logout")

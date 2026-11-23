@@ -251,6 +251,7 @@ class AuditAction(StrEnum):
     LOGIN_SUCCEEDED = "auth.login_succeeded"
     LOGIN_FAILED = "auth.login_failed"
     LOGOUT = "auth.logout"
+    PASSWORD_CHANGED = "auth.password_changed"
     USER_CREATED = "admin.user_created"
     USER_UPDATED = "admin.user_updated"
     MEMBER_ADDED = "project.member_added"

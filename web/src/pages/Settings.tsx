@@ -560,6 +560,43 @@ export function SettingsPage() {
     active_runs: number;
     jobs: { id: string; kind: string; state: string; attempts: number; error_code: string | null; claimed_by: string | null }[];
   }>("/api/system/worker", { pollMs: 5000 });
+  const { notify } = useToast();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordBusy, setPasswordBusy] = useState(false);
+
+  const changePassword = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setPasswordError(null);
+    if (newPassword.length < 12) {
+      setPasswordError("Use at least 12 characters for the new password.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("The new password confirmation does not match.");
+      return;
+    }
+    setPasswordBusy(true);
+    try {
+      await api("/api/auth/password", {
+        method: "POST",
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+        }),
+      });
+      notify("success", "Password changed. Other sessions were signed out.");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (caught) {
+      setPasswordError(errorMessage(caught));
+    } finally {
+      setPasswordBusy(false);
+    }
+  };
 
   return (
     <>
@@ -605,6 +642,51 @@ export function SettingsPage() {
                 </p>
               </>
             ) : null}
+          </Section>
+          <Section
+            title="Your password"
+            description="Change the password for the account currently signed in. Other sessions are signed out."
+          >
+            <form className="stack-sm" onSubmit={(event) => void changePassword(event)}>
+              <Field label="Current password" htmlFor="settings-current-password">
+                <TextInput
+                  id="settings-current-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={currentPassword}
+                  onChange={(event) => setCurrentPassword(event.target.value)}
+                  required
+                />
+              </Field>
+              <Field
+                label="New password"
+                htmlFor="settings-new-password"
+                hint="At least 12 characters."
+              >
+                <TextInput
+                  id="settings-new-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  required
+                />
+              </Field>
+              <Field label="Confirm new password" htmlFor="settings-confirm-password">
+                <TextInput
+                  id="settings-confirm-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  required
+                />
+              </Field>
+              {passwordError ? <Notice tone="error">{passwordError}</Notice> : null}
+              <Button type="submit" variant="primary" busy={passwordBusy}>
+                Change password
+              </Button>
+            </form>
           </Section>
           <Section title="Profiles">
             {meta.data?.profiles.map((profile) => (

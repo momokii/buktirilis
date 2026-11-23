@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { useApi } from "../auth";
+import { useApi, useAuth } from "../auth";
 import { api, errorMessage } from "../api";
 import type { AdminUser, Project } from "../api";
 import { Button, Dialog, ErrorState, Field, Loading, Mono, Notice, PageHeader, RelativeTime, Section, TableWrap, TextInput, useToast } from "../ui";
@@ -38,6 +38,7 @@ interface ConfirmState {
 const AUDIT_PAGE_SIZE = 20;
 
 export function AdminPage() {
+  const { session } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const users = useApi<{ items: AdminUser[] }>("/api/admin/users");
   const projects = useApi<{ items: Project[] }>("/api/projects");
@@ -296,6 +297,10 @@ export function AdminPage() {
                       <RelativeTime value={user.created_at} />
                     </td>
                     <td className="actions">
+                      {user.id === session?.user.id ? (
+                        <span className="muted small">Current account</span>
+                      ) : (
+                        <>
                       <Button size="sm" onClick={() => openReset(user)}>
                         Reset password
                       </Button>
@@ -340,6 +345,8 @@ export function AdminPage() {
                       >
                         {user.is_admin ? "Remove admin" : "Make admin"}
                       </Button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}

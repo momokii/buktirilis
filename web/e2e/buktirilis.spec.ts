@@ -345,6 +345,9 @@ test("admin and project settings screens expose the operational state", async ({
   await page.getByRole("link", { name: "Settings", exact: true }).first().click();
   await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Worker" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your password" })).toBeVisible();
+  await expect(page.getByLabel("Current password")).toBeVisible();
+  await expect(page.getByLabel("New password", { exact: true })).toBeVisible();
   await expect(page.getByText(/Active runs|No worker heartbeat|Queued/).first()).toBeVisible();
 
   await page.getByRole("link", { name: "Projects", exact: true }).click();

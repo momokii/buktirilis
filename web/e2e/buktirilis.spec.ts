@@ -321,6 +321,9 @@ test("operator sees how to request a project instead of a disabled create action
 
 test("login page has no serious accessibility violations", async ({ page }) => {
   await page.goto("/login");
+  await expect(page.getByLabel("Email")).toBeFocused();
+  await expect(page.getByLabel("Email")).toHaveAttribute("placeholder", "you@company.com");
+  await expect(page.getByLabel("Password")).toHaveAttribute("placeholder", "Enter your password");
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();

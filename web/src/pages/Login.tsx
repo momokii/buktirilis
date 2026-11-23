@@ -67,6 +67,11 @@ export function LoginPage() {
               name="email"
               type="email"
               autoComplete="username"
+              inputMode="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              autoFocus
+              placeholder="you@company.com"
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -94,6 +99,7 @@ export function LoginPage() {
               name="password"
               type="password"
               autoComplete={needsBootstrap ? "new-password" : "current-password"}
+              placeholder="Enter your password"
               required
               minLength={needsBootstrap ? 12 : undefined}
               value={password}

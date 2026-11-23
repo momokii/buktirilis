@@ -155,3 +155,12 @@ Status: DONE.
 - Updated Admin/Projects screenshots.
 - Verification: backend 107 passed; web typecheck/build pass; full browser suite 18 passed
   and guide suite 16 passed.
+
+## TASK-011 — self-account protection (2026-11-23)
+Status: DONE.
+
+- Admin self row exposes no destructive actions; API rejects self role/state/access/password
+  changes through the admin endpoint.
+- Settings → Your password verifies the current password, updates the hash, audits the change,
+  and revokes other sessions.
+- Verification: backend 109 passed; browser 18 passed; guide 16 passed.

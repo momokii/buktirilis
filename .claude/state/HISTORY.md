@@ -195,3 +195,10 @@ explicit administrator opt-in, isolated form errors, and dynamic project-origin/
 Fixed target-origin normalization so trailing slashes and empty origin lists work. Added
 Admin/Projects screenshots. Verification: backend 107 passed; web typecheck/build pass; 18 browser tests and 16 guide
 tests pass.
+
+## 2026-11-23 — self-account protection
+Removed destructive actions from the logged-in administrator's own account row and added API
+guards against self role/state/access/password changes through the Admin endpoint. Added
+Settings → Your password with current-password verification, audit logging, and revocation of
+other sessions. Verification: backend 109 passed; full browser suite 18 passed; guide 16
+passed.

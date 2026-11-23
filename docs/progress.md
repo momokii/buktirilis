@@ -180,7 +180,7 @@ Backend tests increased from 81 to **100**; browser tests from 11 to **14**.
 ## Current deployment (demo pilot)
 
 - URL: `http://100.124.184.116:8088` (Tailscale interface only; not LAN/public)
-- Deployed code: `e65870d` (admin flows, audit pagination, form hardening); web and API images rebuilt
+- Deployed code: `c69f1a4` (self-protection and settings password flow); API and web images rebuilt
 - Mode: `APP_ENV=staging`, demo records, web bootstrap disabled, API docs disabled,
   live execution disabled. `COOKIE_SECURE=false` because the tailnet origin is plain HTTP;
   path is WireGuard-encrypted. Prefer `tailscale serve` + TLS to enable Secure cookies.
@@ -391,3 +391,17 @@ accounts. This is server-enforced, not just hidden UI.
   `admin-project-dialog.png`, `admin-account-dialog.png`, `projects-desktop.png`.
 - Verification: backend 107 passed; web typecheck/build pass; full browser suite 18 passed
   and guide suite 16 passed against the deployed app.
+
+## Self-account protection (2026-11-23)
+
+- The currently signed-in administrator row now shows **Current account** instead of Reset
+  password, Edit access, Disable, or Remove admin.
+- The API now rejects self password/reset/role/state/membership changes made through the Admin
+  user endpoint.
+- Added **Settings → Your password**, which requires the current password, hashes the new one,
+  records an audit event, and revokes the account's other sessions.
+- Added backend tests for self-protection and self password change, plus browser assertions for
+  the hidden self controls and the Settings password form.
+- Updated `admin-desktop.png` and added `settings-desktop.png`.
+- Verification: backend 109 passed; full browser suite 18 passed; guide suite 16 passed;
+  web typecheck/build pass.

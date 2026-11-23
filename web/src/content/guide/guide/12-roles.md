@@ -32,6 +32,11 @@ Those actions require a confirmation; the server records the change in the audit
 Operators cannot create projects or installation accounts. They manage builds, runs, retests,
 recipes, and verdicts inside projects where they are a member.
 
+An administrator cannot change their own role, active state, project access, or password from
+the Admin account row. Use **Settings → Your password** for a password change with the current
+password; another administrator must change your role or access. The API enforces the same
+boundary, so hiding the controls is not the only protection.
+
 ## Project membership
 
 An administrator adds an existing account to a project in **Project → Settings → Membership**.
